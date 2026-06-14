@@ -1,8 +1,7 @@
-﻿using System.Diagnostics;
-using System.IO.IsolatedStorage;
+using CodeMonkey.Core.Models;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace CodeMonkey.Cli
 {
@@ -13,28 +12,22 @@ namespace CodeMonkey.Cli
         private static readonly HttpClient client = new HttpClient();
         private const string ApiUrl = "http://localhost:8080/v1/chat/completions";
 
+        private static List<Message> _history = new List<Message>();
+        private static string _sysPrompt = "You are an expert .NET developer. You have access to tools to read/write files and run shell commands. " +
+                            "Always verify your work by running 'dotnet build'. If you see errors, analyze the output and fix the code. " +
+                            $"You are working in '{WorkingDirectory}'. ";
+
         public static async Task Main(string[] args)
         {
+            client.Timeout = TimeSpan.FromMinutes(5);
+
             Console.WriteLine("--- AI Autonomous Engineer PoC ---");
             SetWorkingDir();
+            BootstrapContext();
 
-            string sysPrompt = "You are an expert .NET developer. You have access to tools to read/write files and run shell commands. " +
-                                "Always verify your work by running 'dotnet build'. If you see errors, analyze the output and fix the code. " +
-                                $"You are working in '{WorkingDirectory}'. ";
+            _history.Add(new Message("system", "Ask the user what they would like to do"));
 
-            var history = new List<Message>
-            {
-                new Message("system", sysPrompt),
-            };
-
-            string? readMeContents = GetReadMeContents();
-            if (readMeContents != null)
-                history.Add(new Message("context", readMeContents));
-
-            history.Add(new Message("system", "Ask the user what they would like to do"));
-
-
-            Console.WriteLine($"\nSYSTEM PROMPT: {sysPrompt}\n");
+            Console.WriteLine($"\nSYSTEM PROMPT: {_sysPrompt}\n");
 
             string? userInput = null;
             int loopCount = 0;
@@ -44,7 +37,14 @@ namespace CodeMonkey.Cli
                 if (IsExit(userInput))
                     break;
 
-                history.Add(new Message("user", userInput));
+                if (CompactContextRequested(userInput))
+                {
+                    string summary = await CompactContextAsync();
+                    Console.WriteLine($"LAST SESSION SUMMARY:\n{summary}\n");
+                    continue;
+                }
+
+                _history.Add(new Message("user", userInput));
 
                 bool isRunning = true;
                 int iterations = 0;
@@ -55,7 +55,7 @@ namespace CodeMonkey.Cli
                     iterations++;
                     Console.WriteLine($"\n\tThinking...");
 
-                    var response = await GetLLMResponse(history);
+                    var response = await GetLLMResponse(_history);
 
                     Console.WriteLine($"\n{response}\n\n----------------------------------------------\n");
 
@@ -78,13 +78,11 @@ namespace CodeMonkey.Cli
                             string result = ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments);
 
                             // Add the AI's request to history (Crucial for context)
-                            history.Add(aiMessage);
+                            _history.Add(aiMessage);
 
                             // Add the Tool output to history
-                            history.Add(new Message("tool", result, toolCall.Id));
+                            _history.Add(new Message("tool", result, toolCall.Id));
                         }
-                        // isRunning remains true; we loop back to see if the AI needs more tools 
-                        // based on the results of the commands just executed.
                     }
                     // CASE 2: The AI has provided a final answer (or is talking to us)
                     else if (!string.IsNullOrWhiteSpace(aiMessage?.Content))
@@ -104,6 +102,34 @@ namespace CodeMonkey.Cli
             } while (loopCount < 100);
 
         }
+
+        private static void BootstrapContext()
+        {
+            _history = new List<Message>
+            {
+                new Message("system", _sysPrompt),
+            };
+
+            string? readMeContents = GetIndexContents();
+            if (readMeContents != null)
+                _history.Add(new Message("context", readMeContents));
+        }
+
+        private static async Task<string> CompactContextAsync()
+        {
+            _history.Add(new Message("user", "Summarize this session in under 200 characters"));
+            var response = await GetLLMResponse(_history);
+            string? summary = response.Choices.FirstOrDefault()?.Message.Content;
+
+            BootstrapContext();
+
+            if(summary != null) 
+                _history.Add(new Message("system", $"Previous session summary: {summary}"));
+
+            return summary ?? "No summary was generated";
+        }
+
+        private static bool CompactContextRequested(string input) => input.Trim().Equals("compact", StringComparison.InvariantCultureIgnoreCase);
 
         private static bool IsExit(string input) => input.Trim().Equals("exit", StringComparison.InvariantCultureIgnoreCase);
 
@@ -149,9 +175,9 @@ namespace CodeMonkey.Cli
             throw new FileNotFoundException();
         }
 
-        private static string? GetReadMeContents()
+        private static string? GetIndexContents()
         {
-            string result = ToolReadFile("README.md");
+            string result = ToolReadFile("INDEX.md");
             return result.Equals(_fileNotFound) ? null : result;
         }
 
@@ -181,7 +207,6 @@ namespace CodeMonkey.Cli
         #region Tools Implementation
         static string ToolWriteFile(string path, string content)
         {
-            // Combine with WorkingDirectory if the AI provided a relative path
             string fullPath = Path.IsPathRooted(path)
                               ? path
                               : Path.Combine(WorkingDirectory, path);
@@ -202,7 +227,6 @@ namespace CodeMonkey.Cli
 
         static string ToolRunCommand(string command)
         {
-            // 1. Safety Check: Ensure the directory exists
             if (!Directory.Exists(WorkingDirectory))
             {
                 return $"Error: The working directory '{WorkingDirectory}' does not exist.";
@@ -210,9 +234,7 @@ namespace CodeMonkey.Cli
 
             var processInfo = new ProcessStartInfo("cmd.exe", $"/c {command}")
             {
-                // 2. Set the Working Directory here
                 WorkingDirectory = WorkingDirectory,
-
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -222,14 +244,10 @@ namespace CodeMonkey.Cli
             try
             {
                 using var process = Process.Start(processInfo);
-
-                // Read output and error streams
                 string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
+                string error = process. StandardError.ReadToEnd();
                 process.WaitForExit();
 
-                // In the context of 'dotnet build', errors often go to StandardOutput 
-                // as well as StandardError, so we combine them for the LLM.
                 return string.IsNullOrWhiteSpace(output) && string.IsNullOrWhiteSpace(error)
                        ? "Command executed with no output."
                        : $"{output}\n{error}".Trim();
@@ -239,7 +257,6 @@ namespace CodeMonkey.Cli
                 return $"Failed to execute command: {ex.Message}";
             }
         }
-
         #endregion
 
         private static async Task<ChatResponse> GetLLMResponse(List<Message> history)
@@ -312,80 +329,4 @@ namespace CodeMonkey.Cli
         };
         }
     }
-
-    #region API Models (Fixed with Explicit JSON Mapping)
-
-    public class Message
-    {
-        [JsonPropertyName("role")]
-        public string Role { get; set; }
-
-        // FIX: Ignore when null because tool_call messages might not have content
-        [JsonPropertyName("content")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string Content { get; set; }
-
-        // FIX: This was the cause of your 500 error. 
-        // System/User messages MUST NOT send "tool_call_id": null
-        [JsonPropertyName("tool_call_id")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string ToolCallId { get; set; }
-
-        [JsonPropertyName("tool_calls")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public List<ToolCall> ToolCalls { get; set; }
-
-        public Message(string role, string content, string toolCallId = null)
-        {
-            Role = role;
-            Content = content;
-            ToolCallId = toolCallId;
-        }
-
-        public Message() { }
-
-        public override string ToString() => $"[{Role}] {ToolCalls?.Count ?? 0} Tool Calls, Content Length = {Content.Length}";
-    }
-
-    public class ToolCall
-    {
-        [JsonPropertyName("id")]
-        public string Id { get; set; }
-
-        // FIX: The server requires the "type" field (usually "function") 
-        // to be present in the history when sending messages back.
-        [JsonPropertyName("type")]
-        public string Type { get; set; } = "function";
-
-        [JsonPropertyName("function")]
-        public FunctionCall Function { get; set; }
-    }
-
-    public class FunctionCall
-    {
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
-
-        [JsonPropertyName("arguments")]
-        public string Arguments { get; set; }
-    }
-
-    public class ChatResponse
-    {
-        [JsonPropertyName("choices")]
-        public List<Choice> Choices { get; set; }
-
-        public override string ToString() => string.Join("\n", Choices);
-    }
-
-    public class Choice
-    {
-        [JsonPropertyName("message")]
-        public Message Message { get; set; }
-
-        public override string ToString() => Message.ToString();
-    }
-
-    #endregion
-
 }
