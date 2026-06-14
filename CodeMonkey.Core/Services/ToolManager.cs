@@ -1,30 +1,35 @@
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
-using System.Text.Json;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace CodeMonkey.Core.Services
 {
     public interface IToolManager
     {
-        string ExecuteTool(string name, string argsJson, string workingDirectory);
+        string ExecuteTool(string name, string argsYaml, string workingDirectory);
     }
 
     public class ToolManager : IToolManager
     {
         private readonly IFileSystem _fileSystem;
         private readonly IShell _shell;
+        private readonly IDeserializer _deserializer;
 
         public ToolManager(IFileSystem fileSystem, IShell shell)
         {
             _fileSystem = fileSystem;
             _shell = shell;
+            _deserializer = new DeserializerBuilder()
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                .Build();
         }
 
-        public string ExecuteTool(string name, string argsJson, string workingDirectory)
+        public string ExecuteTool(string name, string argsYaml, string workingDirectory)
         {
             try
             {
-                var args = JsonSerializer.Deserialize<Dictionary<string, string>>(argsJson);
+                var args = _deserializer.Deserialize<Dictionary<string, string>>(argsYaml);
                 if (args == null) return "Error: Invalid arguments";
 
                 return name switch

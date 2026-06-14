@@ -1,4 +1,5 @@
 using CodeMonkey.Core.Models;
+using CodeMonkey.Core.Utility;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
@@ -18,9 +19,12 @@ namespace CodeMonkey.Cli
                             "Always verify your work by running 'dotnet build'. If you see errors, analyze the output and fix the code. " +
                             $"You are working in '{WorkingDirectory}'. Ignore `bin`, `obj`, `.git`, `.obsidian`, and `.vs` directories. ";
 
+        public static GemmaTokenHelper _tokenHelper;
+
         public static async Task Main(string[] args)
         {
             client.Timeout = TimeSpan.FromMinutes(5);
+            _tokenHelper = new GemmaTokenHelper();
 
             Console.WriteLine("--- AI Autonomous Engineer PoC ---");
             SetWorkingDir();
@@ -54,6 +58,7 @@ namespace CodeMonkey.Cli
                 while (isRunning && iterations < maxIterations)
                 {
                     iterations++;
+
                     Console.ForegroundColor = ConsoleColor.White;
                     Console.WriteLine($"\n\tThinking...");
 
@@ -245,10 +250,21 @@ namespace CodeMonkey.Cli
 
             try
             {
-                using var process = Process.Start(processInfo);
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process. StandardError.ReadToEnd();
+                using Process? process = Process.Start(processInfo);
+                Console.WriteLine($"\tRunning command `{command}`... ");
+
+                using var outStream = process.StandardOutput;
+
+                while(process.HasExited == false)
+                {
+                    Console.WriteLine("\t\t" + outStream.ReadLine());
+                }
+
+                var output = process.StandardOutput.ReadToEnd();
+                var error = process.StandardError.ReadToEnd();
+
                 process.WaitForExit();
+                Console.WriteLine($"\tPROCESS COMPLETED");
 
                 return string.IsNullOrWhiteSpace(output) && string.IsNullOrWhiteSpace(error)
                        ? "Command executed with no output."
@@ -270,6 +286,10 @@ namespace CodeMonkey.Cli
                 tools = GetToolDefinitions(),
                 tool_choice = "auto"
             };
+            string content = JsonSerializer.Serialize(requestBody);
+
+            int tokenCount = _tokenHelper.GetTokenCount(content);
+            Console.WriteLine($"\tContext Size: {tokenCount}");
 
             string resultString = string.Empty;
             int loopCount = 0;
@@ -277,7 +297,6 @@ namespace CodeMonkey.Cli
             {
                 try
                 {
-                    var content = JsonSerializer.Serialize(requestBody);
                     var response = await client.PostAsync(ApiUrl, new StringContent(content, Encoding.UTF8, "application/json"));
                     resultString = await response.Content.ReadAsStringAsync();
 

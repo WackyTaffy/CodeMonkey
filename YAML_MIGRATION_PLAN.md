@@ -9,6 +9,9 @@ Migrate the `CodeMonkey` project from JSON to YAML for LLM communication and int
 
 ---
 
+# Phases
+**Last Completed Phase**: 3
+
 ## Phase 1: Model Preparation
 **Goal**: Prepare data models for YAML serialization without removing JSON support.
 

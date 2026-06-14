@@ -34,10 +34,22 @@ namespace CodeMonkey.Core.Services
             var response = await _httpClient.PostAsync(ApiUrl, new StringContent(content, Encoding.UTF8, "application/x-yaml"));
             var resultString = await response.Content.ReadAsStringAsync();
 
-            return JsonSerializer.Deserialize<ChatResponse>(resultString, new JsonSerializerOptions
+            var deserializer = new DeserializerBuilder()
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                .Build();
+
+            try 
             {
-                PropertyNameCaseInsensitive = true
-            });
+                return deserializer.Deserialize<ChatResponse>(resultString);
+            }
+            catch (Exception)
+            {
+                // Fallback to JSON if YAML deserialization fails
+                return JsonSerializer.Deserialize<ChatResponse>(resultString, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
         }
 
         public List<object> GetToolDefinitions()

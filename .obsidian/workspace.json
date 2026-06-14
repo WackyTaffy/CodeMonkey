@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "TEST_PLAN.md",
+                "file": "YAML_MIGRATION_PLAN.md",
                 "mode": "source",
                 "source": true
               },
               "icon": "lucide-file",
-              "title": "TEST_PLAN"
+              "title": "YAML_MIGRATION_PLAN"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "TEST_PLAN.md",
+                "file": "YAML_MIGRATION_PLAN.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for TEST_PLAN"
+              "title": "Backlinks for YAML_MIGRATION_PLAN"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "TEST_PLAN.md",
+                "file": "YAML_MIGRATION_PLAN.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from TEST_PLAN"
+              "title": "Outgoing links from YAML_MIGRATION_PLAN"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "TEST_PLAN.md",
+                "file": "YAML_MIGRATION_PLAN.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of TEST_PLAN"
+              "title": "Outline of YAML_MIGRATION_PLAN"
             }
           }
         ]
@@ -185,20 +185,20 @@
   },
   "active": "e8770600dfb5af80",
   "lastOpenFiles": [
+    "CodeMonkey.Console/ljqfv3qe.k3b~",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Google.Protobuf.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.ML.Tokenizers.dll",
+    "CodeMonkey.Console/bin/Debug/net8.0/Microsoft.ML.Tokenizers.dll",
+    "CodeMonkey.Console/bin/Debug/net8.0/Google.Protobuf.dll",
+    "CodeMonkey.Core/Utility/GemmaTokenHelper.cs",
+    "CodeMonkey.Core/Utility",
+    "CodeMonkey.Core/NewFolder",
+    "TEST_PLAN.md",
     "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.Testing.Platform.dll",
     "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.Testing.Extensions.VSTestBridge.dll",
     "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.VisualStudio.TestPlatform.Common.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.VisualStudio.TestPlatform.ObjectModel.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.CommunicationUtilities.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.CrossPlatEngine.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.PlatformAbstractions.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.CoreUtilities.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/testhost.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Tests.pdb",
-    "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Tests.dll",
     "YAML_MIGRATION_PLAN.md",
     "CodeMonkey.Tests/INDEX.md",
-    "TEST_PLAN.md",
     "spec_SubagentDispatchSystem.md",
     "CodeMonkey.Core/INDEX.md",
     "CodeMonkey.Console/INDEX.md",
