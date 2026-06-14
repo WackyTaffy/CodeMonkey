@@ -2,6 +2,7 @@ using CodeMonkey.Core.Models;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using YamlDotNet;
 
 namespace CodeMonkey.Cli
 {
@@ -15,7 +16,7 @@ namespace CodeMonkey.Cli
         private static List<Message> _history = new List<Message>();
         private static string _sysPrompt = "You are an expert .NET developer. You have access to tools to read/write files and run shell commands. " +
                             "Always verify your work by running 'dotnet build'. If you see errors, analyze the output and fix the code. " +
-                            $"You are working in '{WorkingDirectory}'. ";
+                            $"You are working in '{WorkingDirectory}'. Ignore `bin`, `obj`, `.git`, `.obsidian`, and `.vs` directories. ";
 
         public static async Task Main(string[] args)
         {
@@ -53,6 +54,7 @@ namespace CodeMonkey.Cli
                 while (isRunning && iterations < maxIterations)
                 {
                     iterations++;
+                    Console.ForegroundColor = ConsoleColor.White;
                     Console.WriteLine($"\n\tThinking...");
 
                     var response = await GetLLMResponse(_history);
@@ -269,9 +271,31 @@ namespace CodeMonkey.Cli
                 tool_choice = "auto"
             };
 
-            var content = JsonSerializer.Serialize(requestBody);
-            var response = await client.PostAsync(ApiUrl, new StringContent(content, Encoding.UTF8, "application/json"));
-            var resultString = await response.Content.ReadAsStringAsync();
+            string resultString = string.Empty;
+            int loopCount = 0;
+            do
+            {
+                try
+                {
+                    var content = JsonSerializer.Serialize(requestBody);
+                    var response = await client.PostAsync(ApiUrl, new StringContent(content, Encoding.UTF8, "application/json"));
+                    resultString = await response.Content.ReadAsStringAsync();
+
+                    Debug.Indent();
+                    Debug.WriteLine($"-------------");
+                    Debug.WriteLine($"INPUT:\n{content}\n\nRESPONSE:\n{resultString}");
+                    Debug.WriteLine($"-------------");
+                    Debug.Unindent();
+
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    resultString = ex.Message;
+                }
+
+                loopCount++;
+            } while (loopCount < 2);
 
             return JsonSerializer.Deserialize<ChatResponse>(resultString, new JsonSerializerOptions
             {

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "CodeMonkey.Tests/INDEX.md",
+                "file": "TEST_PLAN.md",
                 "mode": "source",
                 "source": true
               },
               "icon": "lucide-file",
-              "title": "INDEX"
+              "title": "TEST_PLAN"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "CodeMonkey.Tests/INDEX.md",
+                "file": "TEST_PLAN.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for INDEX"
+              "title": "Backlinks for TEST_PLAN"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "CodeMonkey.Tests/INDEX.md",
+                "file": "TEST_PLAN.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from INDEX"
+              "title": "Outgoing links from TEST_PLAN"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "CodeMonkey.Tests/INDEX.md",
+                "file": "TEST_PLAN.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of INDEX"
+              "title": "Outline of TEST_PLAN"
             }
           }
         ]
@@ -185,17 +185,19 @@
   },
   "active": "e8770600dfb5af80",
   "lastOpenFiles": [
-    "CodeMonkey.Tests/obj/Debug/net8.0/CodeMonk.B081E76F.Up2Date",
     "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Core.pdb",
+    "CodeMonkey.Tests/bin/Debug/net8.0/YamlDotNet.dll",
+    "CodeMonkey.Core/obj/3aa0a616-dfa0-4e74-8421-836e0198997c.tmp",
+    "CodeMonkey.Console/bin/Debug/net8.0/YamlDotNet.dll",
+    "CodeMonkey.Core/obj/Debug/net8.0/CodeMonkey.Core.csproj.BuildWithSkipAnalyzers",
+    "CodeMonkey.Core/obj/Debug/net8.0/CodeMonkey.Core.csproj.AssemblyReference.cache",
+    "CodeMonkey.Tests/INDEX.md",
+    "CodeMonkey.Tests/bin/Debug/net8.0/nunit_random_seed.tmp",
     "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Core.dll",
-    "CodeMonkey.Core/Services/Orchestrator.cs",
-    "CodeMonkey.Core/Services/ToolManager.cs",
-    "CodeMonkey.Core/Services/LLMClient.cs",
-    "CodeMonkey.Core/Interfaces/ILLMClient.cs",
-    "CodeMonkey.Core/Services/Shell.cs",
-    "CodeMonkey.Core/Services/FileSystem.cs",
-    "CodeMonkey.Core/Interfaces/IShell.cs",
-    "CodeMonkey.Core/Interfaces/IFileSystem.cs",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.Testing.Platform.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.Testing.Extensions.VSTestBridge.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.VisualStudio.TestPlatform.ObjectModel.dll",
+    "TEST_PLAN.md",
     "spec_SubagentDispatchSystem.md",
     "CodeMonkey.Core/INDEX.md",
     "CodeMonkey.Console/INDEX.md",

@@ -2,6 +2,8 @@ using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
 using System.Text;
 using System.Text.Json;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace CodeMonkey.Core.Services
 {
@@ -25,8 +27,11 @@ namespace CodeMonkey.Core.Services
                 tool_choice = "auto"
             };
 
-            var content = JsonSerializer.Serialize(requestBody);
-            var response = await _httpClient.PostAsync(ApiUrl, new StringContent(content, Encoding.UTF8, "application/json"));
+            var serializer = new SerializerBuilder()
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                .Build();
+            var content = serializer.Serialize(requestBody);
+            var response = await _httpClient.PostAsync(ApiUrl, new StringContent(content, Encoding.UTF8, "application/x-yaml"));
             var resultString = await response.Content.ReadAsStringAsync();
 
             return JsonSerializer.Deserialize<ChatResponse>(resultString, new JsonSerializerOptions
