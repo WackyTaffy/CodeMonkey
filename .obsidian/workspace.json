@@ -11,14 +11,10 @@
             "id": "e8770600dfb5af80",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "YAML_MIGRATION_PLAN.md",
-                "mode": "source",
-                "source": true
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "YAML_MIGRATION_PLAN"
+              "title": "New tab"
             }
           }
         ]
@@ -94,7 +90,6 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "YAML_MIGRATION_PLAN.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +99,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for YAML_MIGRATION_PLAN"
+              "title": "Backlinks"
             }
           },
           {
@@ -113,12 +108,11 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "YAML_MIGRATION_PLAN.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from YAML_MIGRATION_PLAN"
+              "title": "Outgoing links"
             }
           },
           {
@@ -183,20 +177,20 @@
       "bases:Create new base": false
     }
   },
-  "active": "e8770600dfb5af80",
+  "active": "8ae8f1a370bb5789",
   "lastOpenFiles": [
-    "CodeMonkey.Console/ljqfv3qe.k3b~",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Google.Protobuf.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.ML.Tokenizers.dll",
-    "CodeMonkey.Console/bin/Debug/net8.0/Microsoft.ML.Tokenizers.dll",
-    "CodeMonkey.Console/bin/Debug/net8.0/Google.Protobuf.dll",
-    "CodeMonkey.Core/Utility/GemmaTokenHelper.cs",
-    "CodeMonkey.Core/Utility",
-    "CodeMonkey.Core/NewFolder",
-    "TEST_PLAN.md",
     "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.Testing.Platform.dll",
     "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.Testing.Extensions.VSTestBridge.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.VisualStudio.TestPlatform.Common.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.VisualStudio.TestPlatform.ObjectModel.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.CommunicationUtilities.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.PlatformAbstractions.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.CoreUtilities.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Tests.pdb",
+    "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Tests.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Tests.runtimeconfig.json",
+    "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Tests.deps.json",
+    "CodeMonkey.Tests/bin/Debug/net8.0/NUnit3.TestAdapter.dll",
+    "TEST_PLAN.md",
     "YAML_MIGRATION_PLAN.md",
     "CodeMonkey.Tests/INDEX.md",
     "spec_SubagentDispatchSystem.md",

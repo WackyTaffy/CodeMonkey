@@ -1,14 +1,9 @@
 using CodeMonkey.Core.Interfaces;
-using CodeMonkey.Core.Models;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
 namespace CodeMonkey.Core.Services
 {
-    public interface IToolManager
-    {
-        string ExecuteTool(string name, string argsYaml, string workingDirectory);
-    }
 
     public class ToolManager : IToolManager
     {
@@ -32,10 +27,14 @@ namespace CodeMonkey.Core.Services
                 var args = _deserializer.Deserialize<Dictionary<string, string>>(argsYaml);
                 if (args == null) return "Error: Invalid arguments";
 
+                var recursive = args.ContainsKey("recursive") ? args["recursive"] : "false";
+                var searchPattern = args.ContainsKey("searchPattern") ? args["searchPattern"] : "*";
+
                 return name switch
                 {
                     "write_file" => _fileSystem.WriteFile(args["path"], args["content"], workingDirectory),
                     "read_file" => _fileSystem.ReadFile(args["path"], workingDirectory),
+                    "get_file_list" => _fileSystem.GetFileList(recursive, searchPattern, workingDirectory),
                     "run_command" => _shell.RunCommand(args["command"], workingDirectory),
                     _ => $"Error: Tool {name} not found."
                 };
@@ -45,5 +44,6 @@ namespace CodeMonkey.Core.Services
                 return $"Error executing tool {name}: {ex.Message}";
             }
         }
+
     }
 }
