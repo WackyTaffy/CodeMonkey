@@ -89,13 +89,12 @@ namespace CodeMonkey.Cli
                     {
                         foreach (var toolCall in aiMessage.ToolCalls)
                         {
+                            int argStrLen = toolCall.Function.Arguments.Length > 50 ? 50 : toolCall.Function.Arguments.Length;
                             WriteLog($"\tTool: {toolCall.Function.Name} " +
-                                $"with args '{toolCall.Function.Arguments}'");
+                                $"with args '{toolCall.Function.Arguments.Trim().Substring(0, argStrLen)}'");
 
                             //string result = ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments);
-                            int argStrLen = toolCall.Function.Arguments.Length > 50 ? 50 : toolCall.Function.Arguments.Length;
-                            string arguments = toolCall.Function.Arguments.Trim().Substring(0, argStrLen);
-                            string result = _toolManager.ExecuteTool(toolCall.Function.Name, arguments, WorkingDirectory);
+                            string result = _toolManager.ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments, WorkingDirectory);
 
                             int resultStrLen = result.Length > 50 ? 50 : result.Length;
                             WriteLog($"\tResult: {result.Trim().Substring(0, resultStrLen)}");
