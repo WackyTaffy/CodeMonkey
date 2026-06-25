@@ -2,6 +2,7 @@ using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
 using CodeMonkey.Core.Services;
 using CodeMonkey.Core.Utility;
+using System.Diagnostics;
 
 namespace CodeMonkey.Cli
 {
@@ -95,9 +96,12 @@ namespace CodeMonkey.Cli
                                 $"with args '{toolCall.Function.Arguments}'");
 
                             //string result = ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments);
-                            string result = _toolManager.ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments, WorkingDirectory);
+                            int argStrLen = toolCall.Function.Arguments.Length > 50 ? 50 : toolCall.Function.Arguments.Length;
+                            string arguments = toolCall.Function.Arguments.Trim().Substring(0, argStrLen);
+                            string result = _toolManager.ExecuteTool(toolCall.Function.Name, arguments, WorkingDirectory);
 
-                            WriteLog($"\tResult: {result}");
+                            int resultStrLen = result.Length > 50 ? 50 : result.Length;
+                            WriteLog($"\tResult: {result.Trim().Substring(0, resultStrLen)}");
 
                             // Add the AI's request to history (Crucial for context)
                             _mainAgentContext.Add(aiMessage);

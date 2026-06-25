@@ -11,10 +11,14 @@
             "id": "e8770600dfb5af80",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "README.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "README"
             }
           }
         ]
@@ -90,6 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
+                "file": "CodeMonkey.Core/INDEX.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -99,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks"
+              "title": "Backlinks for INDEX"
             }
           },
           {
@@ -108,11 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
+                "file": "CodeMonkey.Core/INDEX.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links"
+              "title": "Outgoing links from INDEX"
             }
           },
           {
@@ -150,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "YAML_MIGRATION_PLAN.md",
+                "file": "CodeMonkey.Core/INDEX.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of YAML_MIGRATION_PLAN"
+              "title": "Outline of INDEX"
             }
           }
         ]
@@ -177,25 +183,28 @@
       "bases:Create new base": false
     }
   },
-  "active": "8ae8f1a370bb5789",
+  "active": "e8770600dfb5af80",
   "lastOpenFiles": [
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.Testing.Platform.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.Testing.Extensions.VSTestBridge.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.VisualStudio.TestPlatform.ObjectModel.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.CommunicationUtilities.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.PlatformAbstractions.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.CoreUtilities.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Tests.pdb",
-    "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Tests.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Tests.runtimeconfig.json",
-    "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Tests.deps.json",
-    "CodeMonkey.Tests/bin/Debug/net8.0/NUnit3.TestAdapter.dll",
-    "TEST_PLAN.md",
-    "YAML_MIGRATION_PLAN.md",
-    "CodeMonkey.Tests/INDEX.md",
-    "spec_SubagentDispatchSystem.md",
+    "docs/prompt-examples.md",
+    "docs/installation-guide.md",
+    "README.md",
+    "releases/2026-06-25/CodeMonkey.2026-06-25.zip",
+    "releases/2026-06-25",
+    "releases/26-06-25/CodeMonkey.2026-06-25.zip",
+    "CodeMonkey.Console/bin/Debug/net8.0/CodeMonkey.2026-06-25.zip",
+    "CodeMonkey.Console/bin/Debug/net8.0/CodeMonkey.Cli.zip",
+    "releases/26-06-25",
+    "releases/New folder",
+    "releases",
+    "New folder",
     "CodeMonkey.Core/INDEX.md",
+    "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Tests.pdb",
+    "docs/subagent_design.md",
+    "CodeMonkey.Tests/INDEX.md",
     "CodeMonkey.Console/INDEX.md",
-    "INDEX.md"
+    "INDEX.md",
+    "YAML_MIGRATION_PLAN.md",
+    "TEST_PLAN.md",
+    "spec_SubagentDispatchSystem.md"
   ]
 }
