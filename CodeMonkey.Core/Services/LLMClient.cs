@@ -28,11 +28,6 @@ namespace CodeMonkey.Core.Services
                 tool_choice = "auto"
             };
 
-            //var serializer = new SerializerBuilder()
-            //    .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            //    .Build();
-            //var content = serializer.Serialize(requestBody);
-
             var jsonContent = JsonSerializer.Serialize(requestBody);
             var response = await _httpClient.PostAsync(ApiUrl, new StringContent(jsonContent, Encoding.UTF8, "application/x-yaml"));
             var resultString = await response.Content.ReadAsStringAsync();
@@ -45,11 +40,6 @@ namespace CodeMonkey.Core.Services
             retVal.TokenUsageStats = ExtractTokenUsageDynamic(resultString);
 
             return retVal;
-
-            var deserializer = new DeserializerBuilder()
-                .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .Build();
-            return deserializer.Deserialize<ChatResponse>(resultString);
         }
 
         public string GetToolDefinitionsYaml()

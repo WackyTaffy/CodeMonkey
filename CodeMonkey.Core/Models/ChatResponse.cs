@@ -7,7 +7,7 @@ namespace CodeMonkey.Core.Models
     {
         [JsonPropertyName("choices")]
         [YamlMember(Alias = "choices")]
-        public List<Choice> Choices { get; set; }
+        public required List<Choice> Choices { get; set; }
 
         public Dictionary<string, int> TokenUsageStats { get; set; } = new();
 

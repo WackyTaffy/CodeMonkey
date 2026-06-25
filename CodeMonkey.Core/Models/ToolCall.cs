@@ -7,7 +7,7 @@ namespace CodeMonkey.Core.Models
     {
         [JsonPropertyName("id")]
         [YamlMember(Alias = "id")]
-        public string Id { get; set; }
+        public required string Id { get; set; }
 
         [JsonPropertyName("type")]
         [YamlMember(Alias = "type")]
@@ -15,6 +15,6 @@ namespace CodeMonkey.Core.Models
 
         [JsonPropertyName("function")]
         [YamlMember(Alias = "function")]
-        public FunctionCall Function { get; set; }
+        public required FunctionCall Function { get; set; }
     }
 }

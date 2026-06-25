@@ -7,7 +7,7 @@ namespace CodeMonkey.Core.Models
     {
         [JsonPropertyName("message")]
         [YamlMember(Alias = "message")]
-        public Message Message { get; set; }
+        public required Message Message { get; set; }
 
         public override string ToString() => Message?.ToString() ?? "null";
     }

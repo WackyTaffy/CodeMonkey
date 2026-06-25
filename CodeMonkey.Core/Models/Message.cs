@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Diagnostics.CodeAnalysis;
 using YamlDotNet.Serialization;
 
 namespace CodeMonkey.Core.Models
@@ -7,24 +8,25 @@ namespace CodeMonkey.Core.Models
     {
         [JsonPropertyName("role")]
         [YamlMember(Alias = "role")]
-        public string Role { get; set; }
+        public required string Role { get; set; }
 
         [JsonPropertyName("content")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         [YamlMember(Alias = "content")]
-        public string Content { get; set; }
+        public string? Content { get; set; }
 
         [JsonPropertyName("tool_call_id")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         [YamlMember(Alias = "tool_call_id")]
-        public string ToolCallId { get; set; }
+        public string? ToolCallId { get; set; }
 
         [JsonPropertyName("tool_calls")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         [YamlMember(Alias = "tool_calls")]
-        public List<ToolCall> ToolCalls { get; set; }
+        public List<ToolCall>? ToolCalls { get; set; }
 
-        public Message(string role, string content, string toolCallId = null)
+        [SetsRequiredMembers]
+        public Message(string role, string content, string? toolCallId = null)
         {
             Role = role;
             Content = content;

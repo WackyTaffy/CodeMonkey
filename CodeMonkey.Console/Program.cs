@@ -13,9 +13,6 @@ namespace CodeMonkey.Cli
         private const string ApiUrl = "http://localhost:8080/v1/chat/completions";
 
         private static List<Message> _mainAgentContext = new List<Message>();
-        private static string _sysPrompt = "You are an expert .NET developer. You have access to tools to read/write files and run shell commands. " +
-                            "Always verify your work by running 'dotnet build'. If you see errors, analyze the output and fix the code. " +
-                            $"You are working in '{WorkingDirectory}'. ";
 
         private static ILLMClient _llmClient;
         private static IShell _shell;
@@ -25,6 +22,11 @@ namespace CodeMonkey.Cli
         private static GemmaTokenHelper _tokenHelper;
 
         private static readonly List<string> _invalidDir = new() { "bin", "obj" };
+
+
+        private static string _sysPrompt => "You are an expert .NET developer. You have access to tools to read/write files and run shell commands. " +
+                            "Always verify your work by running 'dotnet build'. If you see errors, analyze the output and fix the code. " +
+                            $"You are working in '{WorkingDirectory}'. ";
 
         public static async Task Main(string[] args)
         {
@@ -73,7 +75,7 @@ namespace CodeMonkey.Cli
 
                     ChatResponse response = await _llmClient.GetChatCompletionAsync(_mainAgentContext);
 
-                    WriteLog($"\n{response}\n\n----------------------------------------------\n");
+                    WriteLog($"\n{response}\n");
 
                     if (response?.Choices == null || response.Choices.Count == 0)
                     {
@@ -89,10 +91,13 @@ namespace CodeMonkey.Cli
                     {
                         foreach (var toolCall in aiMessage.ToolCalls)
                         {
-                            WriteLog($"\tAI requested tool: {toolCall.Function.Name}");
+                            WriteLog($"\tTool: {toolCall.Function.Name} " +
+                                $"with args '{toolCall.Function.Arguments}'");
 
                             //string result = ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments);
                             string result = _toolManager.ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments, WorkingDirectory);
+
+                            WriteLog($"\tResult: {result}");
 
                             // Add the AI's request to history (Crucial for context)
                             _mainAgentContext.Add(aiMessage);
@@ -114,6 +119,7 @@ namespace CodeMonkey.Cli
                         isRunning = false;
                     }
                     Console.WriteLine();
+                    WriteLog($"\n----------------------------------------------\n");
                 }
 
             } while (loopCount < 100);

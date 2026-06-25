@@ -20,11 +20,33 @@ namespace CodeMonkey.Core.Services
                 .Build();
         }
 
-        public string ExecuteTool(string name, string argsYaml, string workingDirectory)
+        public Dictionary<string, string>? ParseArguments(string argsYaml)
         {
             try
             {
-                var args = _deserializer.Deserialize<Dictionary<string, string>>(argsYaml);
+                return _deserializer.Deserialize<Dictionary<string, string>>(argsYaml);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public string ExecuteTool(string name, string argsYaml, string workingDirectory, List<string>? permissions = null)
+        {
+            // If permissions is provided, we are in a subagent context.
+            // Only allow the tool if it's in the permissions list or if it's a non-privileged tool.
+            if (permissions != null)
+            {
+                if (IsPrivilegedTool(name) && !permissions.Contains(name))
+                {
+                    return $"Error: Subagent does not have permission to use tool '{name}'.";
+                }
+            }
+
+            try
+            {
+                var args = ParseArguments(argsYaml);
                 if (args == null) return "Error: Invalid arguments";
 
                 var recursive = args.ContainsKey("recursive") ? args["recursive"] : "false";
@@ -45,5 +67,14 @@ namespace CodeMonkey.Core.Services
             }
         }
 
+        private bool IsPrivilegedTool(string name)
+        {
+            return name switch
+            {
+                "write_file" => true,
+                "run_command" => true, // Commands can be destructive
+                _ => false
+            };
+        }
     }
 }

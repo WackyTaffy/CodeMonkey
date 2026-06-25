@@ -24,6 +24,8 @@ namespace CodeMonkey.Core.Services
             try
             {
                 using var process = Process.Start(processInfo);
+                if (process == null) return "Error: Failed to start process.";
+                
                 string output = process.StandardOutput.ReadToEnd();
                 string error = process.StandardError.ReadToEnd();
                 process.WaitForExit();
