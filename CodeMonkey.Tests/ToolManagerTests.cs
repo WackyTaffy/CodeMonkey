@@ -1,9 +1,6 @@
-using NUnit.Framework;
 using Moq;
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Services;
-using System;
-using System.Collections.Generic;
 
 namespace CodeMonkey.Tests
 {

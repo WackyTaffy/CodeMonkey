@@ -2,7 +2,6 @@ using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
 using CodeMonkey.Core.Services;
 using CodeMonkey.Core.Utility;
-using System.Diagnostics;
 
 namespace CodeMonkey.Cli
 {
@@ -11,8 +10,6 @@ namespace CodeMonkey.Cli
         public static string WorkingDirectory = @"C:\Sourcecode\temp";
 
         private static readonly HttpClient _client = new HttpClient();
-        private const string ApiUrl = "http://localhost:8080/v1/chat/completions";
-
         private static List<Message> _mainAgentContext = new List<Message>();
 
         private static ILLMClient _llmClient;
@@ -22,7 +19,7 @@ namespace CodeMonkey.Cli
         private static IOrchestrator _orchestrator;
         private static GemmaTokenHelper _tokenHelper;
 
-        private static readonly List<string> _invalidDir = new() { "bin", "obj" };
+        private static readonly List<string> _invalidDir = new() { "bin", "obj", ".obsidian", ".vs" };
 
 
         private static string _sysPrompt => "You are an expert .NET developer. You have access to tools to read/write files and run shell commands. " +
