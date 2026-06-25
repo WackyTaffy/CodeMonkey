@@ -4,5 +4,6 @@ namespace CodeMonkey.Core.Interfaces
     {
         string ExecuteTool(string name, string argsYaml, string workingDirectory, List<string>? permissions = null);
         Dictionary<string, string>? ParseArguments(string argsYaml);
+        T? ParseArguments<T>(string argsYaml);
     }
 }

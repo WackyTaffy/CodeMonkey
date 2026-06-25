@@ -162,7 +162,7 @@ namespace CodeMonkey.Tests
             string userInput = "Run a complex task";
             var history = new List<Message>();
             
-            // First response: dispatch subagent
+            // 1. Main agent decides to dispatch a subagent
             var response1 = new ChatResponse
             {
                 Choices = new List<Choice>
@@ -171,14 +171,40 @@ namespace CodeMonkey.Tests
                     { 
                         Message = new Message("assistant", null, new List<ToolCall> 
                         { 
-                            new ToolCall { Id = "1", Function = new FunctionCall { Name = "dispatch_subagent", Arguments = "task: 'Find errors' " } } 
+                            new ToolCall { Id = "1", Function = new FunctionCall { Name = "dispatch_subagent", Arguments = "task: 'Find errors', permissions: 'read_file'" } } 
                         }) 
                     }
                 }
-            }
-        };
-        
-        // Wait, I noticed a syntax error in my generated code. I will fix it in the next call.
-        // I'll rewrite the whole file to be safe.
+            };
+
+            // 2. Subagent provides a result
+            var response2 = new ChatResponse
+            {
+                Choices = new List<Choice>
+                {
+                    new Choice { Message = new Message("assistant", "Subagent found 2 errors") }
+                }
+            };
+
+            // 3. Main agent provides final response after getting subagent result
+            var response3 = new ChatResponse
+            {
+                Choices = new List<Choice>
+                {
+                    new Choice { Message = new Message("assistant", "The subagent found 2 errors, I will now fix them") }
+                }
+            };
+
+            _mockLlmClient.SetupSequence(c => c.GetChatCompletionAsync(It.IsAny<List<Message>>()))
+                          .ReturnsAsync(response1)
+                          .ReturnsAsync(response2)
+                          .ReturnsAsync(response3);
+
+            // Act
+            var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir, history);
+
+            // Assert
+            Assert.That(result, Is.EqualTo("The subagent found 2 errors, I will now fix them"));
+        }
     }
 }

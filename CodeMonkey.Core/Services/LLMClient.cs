@@ -111,6 +111,22 @@ namespace CodeMonkey.Core.Services
                             required = new[] { "command" }
                         }
                     }
+                },
+                new {
+                    type = "function",
+                    function = new {
+                        name = "dispatch_subagent",
+                        description = "Use subagents for repetitive exploration, summarizing large volumes of data, or tasks that would generate excessive tool output.",
+                        parameters = new {
+                            type = "object",
+                            properties = new {
+                                task = new { type = "string", description = "The specific objective for the subagent" },
+                                permissions = new { type = "string", description = "A comma-separated list of allowed privileged tools (e.g., 'write_file,run_command')" },
+                                initial_context = new { type = "string", description = "Any specific files or data the subagent needs to start" }
+                            },
+                            required = new[] { "task" }
+                        }
+                    }
                 }
             };
         }

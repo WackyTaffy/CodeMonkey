@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "README.md",
+                "file": "docs/subagent_design.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "README"
+              "title": "subagent_design"
             }
           }
         ]
@@ -183,22 +183,25 @@
       "bases:Create new base": false
     }
   },
-  "active": "e8770600dfb5af80",
+  "active": "8ae8f1a370bb5789",
   "lastOpenFiles": [
-    "CodeMonkey.Tests/OrchestratorTests.cs",
-    "CodeMonkey.Tests/FileSystemTests.cs",
-    "releases/2026-06-25/CodeMonkey.2026-06-25.zip",
-    "releases/2026-06-25/CodeMonkey.Cli.zip",
-    "releases/CodeMonkey.Cli.zip",
-    "CodeMonkey.Console/bin/Debug/net8.0/CodeMonkey.Cli.zip",
-    "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Tests.pdb",
-    "CodeMonkey.Tests/obj/Debug/net8.0/ref/CodeMonkey.Tests.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Tests.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/CodeMonkey.Tests.runtimeconfig.json",
-    "CodeMonkey.Tests/obj/Debug/net8.0/CodeMonkey.Tests.genruntimeconfig.cache",
+    "CodeMonkey.Tests/bin/Debug/net8.0/YamlDotNet.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.Testing.Platform.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.Testing.Extensions.VSTestBridge.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.VisualStudio.TestPlatform.Common.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.VisualStudio.TestPlatform.ObjectModel.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.CommunicationUtilities.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.CrossPlatEngine.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.PlatformAbstractions.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.CoreUtilities.dll",
+    "CodeMonkey.Tests/bin/Debug/net8.0/testhost.dll",
+    "CodeMonkey.Core/Models/SubagentDispatchArgs.cs",
+    "docs/designs/user_experience.md",
+    "docs/designs/developer_pragmatism.md",
+    "docs/designs/architect_vision.md",
+    "README.md",
     "docs/prompt-examples.md",
     "docs/installation-guide.md",
-    "README.md",
     "CodeMonkey.Core/INDEX.md",
     "docs/subagent_design.md",
     "CodeMonkey.Tests/INDEX.md",

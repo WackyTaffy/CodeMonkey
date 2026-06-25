@@ -4,7 +4,6 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace CodeMonkey.Core.Services
 {
-
     public class ToolManager : IToolManager
     {
         private readonly IFileSystem _fileSystem;
@@ -32,10 +31,20 @@ namespace CodeMonkey.Core.Services
             }
         }
 
+        public T? ParseArguments<T>(string argsYaml)
+        {
+            try
+            {
+                return _deserializer.Deserialize<T>(argsYaml);
+            }
+            catch
+            {
+                return default;
+            }
+        }
+
         public string ExecuteTool(string name, string argsYaml, string workingDirectory, List<string>? permissions = null)
         {
-            // If permissions is provided, we are in a subagent context.
-            // Only allow the tool if it's in the permissions list or if it's a non-privileged tool.
             if (permissions != null)
             {
                 if (IsPrivilegedTool(name) && !permissions.Contains(name))
@@ -72,7 +81,7 @@ namespace CodeMonkey.Core.Services
             return name switch
             {
                 "write_file" => true,
-                "run_command" => true, // Commands can be destructive
+                "run_command" => true,
                 _ => false
             };
         }

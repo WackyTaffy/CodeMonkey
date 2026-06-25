@@ -33,6 +33,14 @@ namespace CodeMonkey.Core.Models
             ToolCallId = toolCallId;
         }
 
+        [SetsRequiredMembers]
+        public Message(string role, string? content, List<ToolCall>? toolCalls)
+        {
+            Role = role;
+            Content = content;
+            ToolCalls = toolCalls;
+        }
+
         public Message() { }
 
         public override string ToString() => $"[{Role}] {ToolCalls?.Count ?? 0} Tool Calls, Content Length = {Content?.Length ?? 0}";

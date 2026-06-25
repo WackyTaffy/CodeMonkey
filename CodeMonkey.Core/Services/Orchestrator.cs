@@ -1,5 +1,6 @@
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
+using System.Text;
 
 namespace CodeMonkey.Core.Services
 {
@@ -24,6 +25,7 @@ namespace CodeMonkey.Core.Services
                                $"Subagent Dispatch:\n" +
                                $"Use subagents via 'dispatch_subagent' for repetitive exploration, summarizing large volumes of data, or tasks that would generate excessive tool output. " +
                                $"Clearly define the task and grant only necessary permissions (e.g., 'write_file') if the subagent needs to modify the codebase. " +
+                               $"Provide a list of files the subagent should start with to minimize unnecessary tool calls. " +
                                $"Subagents return only their final result, keeping your context clean.";
 
             history.Clear();
@@ -117,48 +119,41 @@ namespace CodeMonkey.Core.Services
         {
             try
             {
-                // We can't use the ToolManager's deserializer directly because it's private/internal-ish
-                // and we need to parse the arguments here. Let's assume it's a simple YAML.
-                // For simplicity in this implementation, I'll use a basic parse or 
-                // ideally the ToolManager should expose a way to deserialize.
-                // Since I don't have a shared deserializer, I'll use a simple approach or 
-                // add a helper to ToolManager.
-                
-                // Actually, I should add a Deserialize method to ToolManager.
-                // For now, I'll use a quick and dirty way or modify ToolManager.
-                
-                // Let's assume we can parse it.
-                // task: string, permissions: List<string>, initial_context: string
-                
-                // I will modify ToolManager to provide the arguments as a dictionary.
-                // But let's just use a simple logic here for now.
-                
-                // I'll call a new method in ToolManager to get the dictionary.
-                var args = _toolManager.ParseArguments(argsYaml);
+                var args = _toolManager.ParseArguments<SubagentDispatchArgs>(argsYaml);
                 if (args == null) return "Error: Invalid arguments for subagent dispatch";
-
-                string task = args.GetValueOrDefault("task", "No task provided");
-                string permissionsStr = args.GetValueOrDefault("permissions", "");
-                string initialContext = args.GetValueOrDefault("initial_context", "");
-
-                List<string> permissions = string.IsNullOrWhiteSpace(permissionsStr) 
-                    ? new List<string>() 
-                    : permissionsStr.Split(',').Select(p => p.Trim()).ToList();
 
                 List<Message> subagentHistory = new List<Message>();
                 
                 // Subagent System Prompt
-                string subagentSysPrompt = $"You are a specialized subagent. Your goal is: {task}. " +
+                string subagentSysPrompt = $"You are a specialized subagent. Your goal is: {args.Task}. " +
                                           $"You must report all changes made. If you fail, report partial progress. " +
                                           $"You are working in '{workingDirectory}'.";
                 
                 subagentHistory.Add(new Message("system", subagentSysPrompt));
-                if (!string.IsNullOrWhiteSpace(initialContext))
-                {
-                    subagentHistory.Add(new Message("context", initialContext));
-                }
 
-                return await RunAgentLoopAsync(task, workingDirectory, subagentHistory, permissions);
+                // Context Injection: Prompt + Suggested Files
+                var contextBuilder = new StringBuilder();
+                contextBuilder.AppendLine("--- INITIAL CONTEXT ---");
+                contextBuilder.AppendLine($"Task: {args.Task}");
+                contextBuilder.AppendLine("\nRelevant Files:");
+                foreach (var filePath in args.InitialContext)
+                {
+                    string content = _fileSystem.ReadFile(filePath, workingDirectory);
+                    if (!content.Contains("File not found"))
+                    {
+                        contextBuilder.AppendLine($"\n--- File: {filePath} ---\n{content}");
+                    }
+                    else
+                    {
+                        contextBuilder.AppendLine($"\n--- File: {filePath} ---\n(File not found)");
+                    }
+                }
+                contextBuilder.AppendLine("\n--- END INITIAL CONTEXT ---");
+
+                subagentHistory.Add(new Message("context", contextBuilder.ToString()));
+                
+                // Start the loop with the task as the user input to the subagent
+                return await RunAgentLoopAsync(args.Task, workingDirectory, subagentHistory, args.Permissions);
             }
             catch (Exception ex)
             {

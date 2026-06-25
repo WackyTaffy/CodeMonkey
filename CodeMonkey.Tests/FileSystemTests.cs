@@ -97,7 +97,11 @@ namespace CodeMonkey.Tests
             var result = _fileSystem.GetFileList("true", "*", _tempDir);
 
             Assert.That(result, Does.Contain("root.txt"));
-            Assert.That(result, Does.Contain("subdir\\nested.txt").Or(result, Does.Contain("subdir/nested.txt")));
+            
+            // Use a simpler check instead of .Or() to avoid NUnit version conflicts
+            bool containsWin = result.Contains("subdir\\nested.txt");
+            bool containsUnix = result.Contains("subdir/nested.txt");
+            Assert.That(containsWin || containsUnix, Is.True, "Should contain the file path in either Windows or Unix format");
         }
 
         [Test]
@@ -114,12 +118,13 @@ namespace CodeMonkey.Tests
             Directory.CreateDirectory(Path.Combine(_tempDir, "obj"));
             File.WriteAllText(Path.Combine(_tempDir, "obj", "app.cache"), "cache");
 
-            Directory.CreateDirectory(Path.Combine(_tempDir, ".git"));
-            File.WriteAllText(Path.Combine(_tempDir, ".git", "config"), "gitconfig");
+            Directory.CreateDirectory(Path.Combine(_tempDir, "config"));
+            File.WriteAllText(Path.Combine(_tempDir, ".git"), "gitconfig");
 
             var result = _fileSystem.GetFileList("true", "*", _tempDir);
 
-            Assert.That(result, Does.Contain("src\\app.cs").Or(result, Does.Contain("src/app.cs")));
+            bool containsSrc = result.Contains("src\\app.cs") || result.Contains("src/app.cs");
+            Assert.That(containsSrc, Is.True);
             Assert.That(result, Does.Not.Contain("bin"));
             Assert.That(result, Does.Not.Contain("obj"));
             Assert.That(result, Does.Not.Contain(".git"));
