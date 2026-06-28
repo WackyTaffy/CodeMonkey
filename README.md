@@ -1,56 +1,97 @@
 # CodeMonkey
 
-CodeMonkey is an AI-powered .NET development assistant that can read, write, and execute code within a provided workspace. It leverages a loop-based agent architecture.
+CodeMonkey is a .NET-based agentic framework designed to bridge the gap between high-level architectural intent and executable code. It provides a robust environment for autonomous agents to reason about, modify, and verify codebases with precision.
 
-Currently only a single agent context can be used, i.e. no subagents yet.
+## 🛠️ Tech Stack
+- **Runtime:** .NET 8.0
+- **Language:** C#
+- **Orchestration:** `<LLM_FRAMEWORK>` (e.g., Semantic Kernel / LangChain)
+- **Verification:** xUnit / dotnet test
 
-## Getting Started
+## 🚀 Project Vision
 
-### 1. LLM Backend (llama.cpp)
+The goal of CodeMonkey is to create a "Developer's Co-Pilot" that doesn't just suggest code, but understands architectural intent, maintains consistency across large codebases, and ensures stability through rigorous automated verification.
 
-CodeMonkey is designed to work with a `llama.cpp` server. 
+### Core Principles
+- **Architectural Integrity:** Preventing system erosion by maintaining a clear mapping of the system's structure (tracked via `CONTEXT-MAP.md`).
+- **Agentic Autonomy:** Implementing a ReAct-style reasoning loop that allows AI agents to plan, execute .NET tools, and self-correct based on build output.
+- **Verification-Driven Development:** Ensuring every autonomous change is backed by tests and build verification.
+- **Pragmatic Evolution:** Evolving the system based on real-world usage, documented through Architectural Decision Records (ADRs) in `docs/adr/`.
 
-#### Developer Environment
-Used llama.cpp to host [Gemma 4 31B **Instruct** Q4-K-M](https://huggingface.co/google/gemma-4-31B-it)
-Uses [Google's Gemma 4 Prompt Formatting](https://ai.google.dev/gemma/docs/core/prompt-formatting-gemma4) for request payload
+## 📂 Project Structure
 
-**Recommended Server Command:**
-```bash
-./llama-server --model "file-path-to-gguf" --host 0.0.0.0 --port 8080 --gpu-layers -1 --ctx-size 32768 --flash-attn on --parallel 2 --threads 12 --threads-batch 8 --cache-ram 4096
+```text
+/
+├── docs/                  # Detailed specifications and ADRs
+│   └── adr/               # Architectural Decision Records
+├── src/                   # Source code
+│   └── <PROJECT_NAME>/    # Main application logic and entry point
+├── tests/                 # Test suites for verification
+├── AGENTS.md              # "Laws of the Land" for AI Agents
+├── CONTEXT-MAP.md         # High-level structural mapping
+└── README.md              # Project entry point
 ```
 
-**Developer Hardware Specs:**
-The configuration above was optimized for a machine with:
-- **GPU:** 24GB VRAM
-- **RAM:** 64GB
-- **CPU:** Intel i9 275HX
+**Main Entry Point:** `src/<PROJECT_NAME>/Program.cs`
 
-### 2. Running CodeMonkey
+## 🏁 Getting Started
 
-You can run the application in several ways:
-- **IDE Debugging:** Open the solution in **Visual Studio** or **VSCode** and run the `CodeMonkey.Console` project.
-- **Manual Installation:** Follow the detailed instructions in [docs/installation-guide.md](docs/installation-guide.md).
+### Prerequisites
+- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- A compatible IDE (Visual Studio 2022, JetBrains Rider, or VS Code)
+- API Keys for the required LLM provider (e.g., OpenAI, Anthropic)
 
-## Prompt Architecture
+### Installation & First Run
+Follow these steps to get CodeMonkey running locally:
 
-CodeMonkey uses a specific prompt structure to guide the LLM in acting as a professional developer.
+1. **Clone the Repository**
+   ```bash
+   git clone <REPOSITORY_URL>
+   cd CodeMonkey
+   ```
 
-### Main Agent
-The main agent is initialized with a system prompt that defines its persona and capabilities:
+2. **Configure Environment**
+   Create a `.env` file (or `appsettings.json`) in the root directory based on the template:
+   ```bash
+   cp .env.example .env
+   ```
+   Open `.env` and add your keys:
+   ```text
+   LLM_API_KEY=your_api_key_here
+   ```
 
-> You are an expert .NET developer. You have access to tools to read/write files and run shell commands. Always verify your work by running 'dotnet build'. If you see errors, analyze the output and fix the code. You are working in '{workingDirectory}'.
+3. **Restore & Build**
+   ```bash
+   dotnet restore
+   dotnet build
+   ```
 
-Additionally, the contents of the `INDEX.md` file in the root of the working directory are provided as context to give the agent an immediate overview of the project.
+4. **Run the Application**
+   ```bash
+   dotnet run --project src/<PROJECT_NAME>
+   ```
 
-For a detailed walkthrough of a full agentic loop, see the [Prompt Examples](docs/prompt-examples.md).
-## Project Structure
+**Success Criteria:** Upon a successful first run, you should see the `Welcome to CodeMonkey` prompt in your terminal, indicating the agentic loop is initialized and ready for input.
 
-- `CodeMonkey.Console`: The entry point and CLI for the application.
-- `CodeMonkey.Core`: Core business logic, LLM client, and tool management.
-- `CodeMonkey.Tests`: Test suite for ensuring stability.
-- `docs/`: Documentation and design specifications.
+## ⚙️ Configuration
+CodeMonkey relies on environment variables for sensitive credentials.
+- **`LLM_API_KEY`**: The primary key for the orchestration layer.
+- **`AGENT_MODE`**: (Optional) Set to `debug` or `production` to control the verbosity of the reasoning loop.
 
-## Development Journey
-- Initial, bare-bones implementation coded exclusively through LM studio chats
-- All further iterations have been done by CodeMonkey itself with direction from me (on a similar level to basic Claude Code CLI use)
-- Minimal human interaction, mostly stylistic changes here and there while reviewing the code
+## 🤖 AI Agent Onboarding
+If you are an AI agent operating on this repository, please follow this sequence to gain full context:
+1. **Read [AGENTS.md](./AGENTS.md):** This contains the coding standards and "Laws of the Land."
+2. **Review [CONTEXT-MAP.md](./CONTEXT-MAP.md):** Use this to map namespaces to files and understand the system boundaries.
+3. **Analyze [docs/adr/](./docs/adr/):** Review these files to understand the *why* behind core architectural decisions before proposing changes.
+
+## 🤝 Contributing
+We welcome contributions that enhance the agentic capabilities or stability of the framework.
+1. Ensure all changes are documented in a new ADR if they affect architecture.
+2. All PRs must pass `dotnet build` and `dotnet test`.
+3. Update `CONTEXT-MAP.md` if new high-level modules are introduced.
+
+## 📜 License
+This project is licensed under the `<LICENSE_TYPE>` License - see the LICENSE file for details.
+
+---
+*Welcome to CodeMonkey. Let's build something stable.*

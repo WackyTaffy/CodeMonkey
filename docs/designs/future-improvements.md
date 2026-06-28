@@ -1,0 +1,16 @@
+## Line Ranges for File CRUD
+- READ
+	- Instead of reading an entire file at once, expose a tool for the LLM to request a read in a range of lines in a file
+	- If the agent doesn't know the exact line range, allow it to perform a search in the file to retrieve a set of lines around each search match. If there are multiple search matches and their line ranges overlap, combine those into a single line range.
+	- EXAMPLES
+		- Read line range (i.e. "I need to read the first 5 lines of the file") -> returns those 5 lines only
+		- Read out-of-range line numbers (i.e. "read line 45-60 in file-with-50-lines.txt") -> returns only lines 45-50 that actually exist
+		- Read lines around mentions of `compaction` (i.e. "find where compaction is does in file1.cs") -> finds search matches on lines 5, 7, 13, and 34 -> returns lines 3-9, 11-15, and 32-36
+- WRITE
+	- Instead of writing an entire file to modify a single line in the file, expose a tools for the LLM to request a modification of a specific range of lines
+	- EXAMPLES
+		- Modification of existing lines (i.e. "replace line 23 with this text...") -> same number of lines in file
+		- Insertion of new lines (i.e. "after line 20 add this text...") -> increase number of lines in file
+		- Deletion of lines (i.e. "delete lines 20-30") -> decrease number of lines in file
+- DOCUMENTATION
+	- Allow line ranges to be specifically called out in documentation to allow targeted/focused operations
