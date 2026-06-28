@@ -10,128 +10,81 @@ namespace CodeMonkey.Cli
         public static string WorkingDirectory = @"C:\Sourcecode\temp";
 
         private static readonly HttpClient _client = new HttpClient();
-        private static List<Message> _mainAgentContext = new List<Message>();
-
-        private static ILLMClient _llmClient;
-        private static IShell _shell;
-        private static IFileSystem _fileSystem;
-        private static IToolManager _toolManager;
-        private static IOrchestrator _orchestrator;
-        private static GemmaTokenHelper _tokenHelper;
+        
+        private static ILLMClient _llmClient = null!;
+        private static IShell _shell = null!;
+        private static IFileSystem _fileSystem = null!;
+        private static IToolManager _toolManager = null!;
+        private static IOrchestrator _orchestrator = null!;
+        private static IConversationManager _conversationManager = null!;
+        private static GemmaTokenHelper _tokenHelper = null!;
 
         private static readonly List<string> _invalidDir = new() { "bin", "obj", ".obsidian", ".vs" };
 
-
-        private static string _sysPrompt => "You are an expert .NET developer. You have access to tools to read/write files and run shell commands. " +
+        private static string _sysPrompt_old => "You are an expert .NET developer. You have access to tools to read/write files and run shell commands. " +
                             "Always verify your work by running 'dotnet build'. If you see errors, analyze the output and fix the code. " +
+                            $"You are working in '{WorkingDirectory}'. ";
+        private static string _sysPrompt => "You are a helpful assisstant. You have access to tools to read/write files and run shell commands. " +
                             $"You are working in '{WorkingDirectory}'. ";
 
         public static async Task Main(string[] args)
         {
+            bool verbose = true;// args.Contains("--verbose");
+
             _client.Timeout = TimeSpan.FromMinutes(5);
             _llmClient = new LLMClient(_client);
             _fileSystem = new Core.Services.FileSystem();
             _shell = new Shell();
             _toolManager = new ToolManager(_fileSystem, _shell);
-            _orchestrator = new Orchestrator(_llmClient, _toolManager, _fileSystem);
+            _conversationManager = new ConversationManager();
+            _orchestrator = new Orchestrator(_llmClient, _toolManager, _fileSystem, _conversationManager);
+            _orchestrator.Verbose = verbose;
             _tokenHelper = new GemmaTokenHelper();
 
             WriteLog("--- AI Autonomous Engineer PoC ---");
+            if (verbose) WriteLog("[Mode] Verbose output enabled");
             SetWorkingDir();
 
-            _orchestrator.BootstrapContext(_mainAgentContext, WorkingDirectory);
+            _orchestrator.BootstrapContext(WorkingDirectory);
 
-            WriteLog($"\nSYSTEM PROMPT: {_sysPrompt}\n");
+            WriteLog($"\nSYSTEM PROMPT: {_orchestrator.GetSystemPrompt(WorkingDirectory)}\n");
+
+            // Subscribe to orchestrator status updates
+            _orchestrator.OnStatusUpdate = (status) => 
+            {
+                WriteLog($"[STATUS] {status}");
+            };
 
             string? userInput = null;
             int loopCount = 0;
             do
             {
-                userInput = GetUserInput();
+                int currentTokens = _conversationManager.GetTotalTokenCount();
+
+                userInput = GetUserInput(currentTokens);
                 if (IsExit(userInput))
                     break;
 
                 if (CompactContextRequested(userInput))
                 {
-                    string summary = await _orchestrator.CompactContextAsync(_mainAgentContext, WorkingDirectory);
+                    string summary = await _orchestrator.CompactContextAsync(WorkingDirectory);
                     WriteLog($"LAST SESSION SUMMARY:\n{summary}\n");
                     continue;
                 }
 
-                _mainAgentContext.Add(new Message("user", userInput));
+                string response = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDirectory);
+                WriteAiResponse($"\n{response}\n");
 
-                bool isRunning = true;
-                int iterations = 0;
-                const int maxIterations = 15;
-
-                while (isRunning && iterations < maxIterations)
-                {
-                    iterations++;
-
-                    Console.ForegroundColor = ConsoleColor.White;
-                    WriteLog($"\n\tThinking...");
-
-                    ChatResponse response = await _llmClient.GetChatCompletionAsync(_mainAgentContext);
-
-                    WriteLog($"\n{response}\n");
-
-                    if (response?.Choices == null || response.Choices.Count == 0)
-                    {
-                        Console.WriteLine($"AI Response was null or contained no Choices");
-                        isRunning = false;
-                        continue;
-                    }
-
-                    var aiMessage = response.Choices[0].Message;
-
-                    // CASE 1: The AI wants to use tools
-                    if (aiMessage?.ToolCalls != null && aiMessage.ToolCalls.Count > 0)
-                    {
-                        foreach (var toolCall in aiMessage.ToolCalls)
-                        {
-                            int argStrLen = toolCall.Function.Arguments.Length > 50 ? 50 : toolCall.Function.Arguments.Length;
-                            WriteLog($"\tTool: {toolCall.Function.Name} " +
-                                $"with args '{toolCall.Function.Arguments.Trim().Substring(0, argStrLen)}'");
-
-                            //string result = ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments);
-                            string result = _toolManager.ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments, WorkingDirectory);
-
-                            int resultStrLen = result.Length > 50 ? 50 : result.Length;
-                            WriteLog($"\tResult: {result.Trim().Substring(0, resultStrLen)}");
-
-                            // Add the AI's request to history (Crucial for context)
-                            _mainAgentContext.Add(aiMessage);
-
-                            // Add the Tool output to history
-                            _mainAgentContext.Add(new Message("tool", result, toolCall.Id));
-                        }
-                    }
-                    // CASE 2: The AI has provided a final answer (or is talking to us)
-                    else if (!string.IsNullOrWhiteSpace(aiMessage?.Content))
-                    {
-                        Console.WriteLine($"\n{aiMessage.Content}");
-                        isRunning = false;
-                    }
-                    // CASE 3: Empty response from LLM
-                    else
-                    {
-                        Console.WriteLine("AI returned an empty response.");
-                        isRunning = false;
-                    }
-                    Console.WriteLine();
-                    WriteLog($"\n----------------------------------------------\n");
-                }
-
+                loopCount++;
             } while (loopCount < 100);
 
         }
-
 
         private static bool CompactContextRequested(string input) => input.Trim().Equals("compact", StringComparison.InvariantCultureIgnoreCase);
 
         private static bool IsExit(string input) => input.Trim().Equals("exit", StringComparison.InvariantCultureIgnoreCase);
 
-        private static string GetUserInput()
+        private static string GetUserInput(int tokenCount)
         {
             string? userInput;
             var origColor = Console.ForegroundColor;
@@ -139,7 +92,7 @@ namespace CodeMonkey.Cli
 
             do
             {
-                Console.Write($"CM {WorkingDirectory}> ");
+                Console.Write($"CM {WorkingDirectory} [{tokenCount} tokens]> ");
                 userInput = Console.ReadLine();
             } while (string.IsNullOrWhiteSpace(userInput));
 
@@ -165,6 +118,8 @@ namespace CodeMonkey.Cli
                 var origColor = Console.ForegroundColor;
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Write("\t!!! Invalid directory !!!");
+                Console.ForegroundColor = Console.ForegroundColor;
+                Console.WriteLine();
                 Console.ForegroundColor = origColor;
 
                 loopCount++;
@@ -177,6 +132,14 @@ namespace CodeMonkey.Cli
         {
             var origColor = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine(str);
+            Console.ForegroundColor = origColor;
+        }
+
+        private static void WriteAiResponse(string str)
+        {
+            var origColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine(str);
             Console.ForegroundColor = origColor;
         }

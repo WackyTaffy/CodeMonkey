@@ -38,12 +38,13 @@ namespace CodeMonkey.Core.Services
             foreach (var filePath in rawFileList)
             {
                 var relativePath = Path.GetRelativePath(workingDirectory, filePath);
+                
+                // Split path into segments to check for ignored directories or files
+                var segments = relativePath.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+                
+                bool shouldIgnore = segments.Any(s => _invalidDir.Contains(s) || s.StartsWith("."));
 
-                var directory = Path.GetDirectoryName(relativePath)?.Trim() ?? "";
-                bool isExplicitlyIgnoredDir = _invalidDir.Contains(directory);
-                bool isDotDir = directory.StartsWith(".");
-
-                if (!isExplicitlyIgnoredDir && !isDotDir)
+                if (!shouldIgnore)
                     fileList.Add(relativePath);
             }
 

@@ -29,17 +29,28 @@ namespace CodeMonkey.Core.Services
             };
 
             var jsonContent = JsonSerializer.Serialize(requestBody);
-            var response = await _httpClient.PostAsync(ApiUrl, new StringContent(jsonContent, Encoding.UTF8, "application/x-yaml"));
+            var response = await _httpClient.PostAsync(ApiUrl, new StringContent(jsonContent, Encoding.UTF8, "application/json"));
             var resultString = await response.Content.ReadAsStringAsync();
 
-            ChatResponse retVal = JsonSerializer.Deserialize<ChatResponse>(resultString, new JsonSerializerOptions
+            if (!response.IsSuccessStatusCode)
             {
-                PropertyNameCaseInsensitive = true
-            })!;
+                throw new HttpRequestException($"LLM API request failed with status code {response.StatusCode}. Response: {resultString}");
+            }
 
-            retVal.TokenUsageStats = ExtractTokenUsageDynamic(resultString);
+            try
+            {
+                ChatResponse retVal = JsonSerializer.Deserialize<ChatResponse>(resultString, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                })!;
 
-            return retVal;
+                retVal.TokenUsageStats = ExtractTokenUsageDynamic(resultString);
+                return retVal;
+            }
+            catch (JsonException ex)
+            {
+                throw new JsonException($"Failed to deserialize LLM response. Response body: {resultString}", ex);
+            }
         }
 
         public string GetToolDefinitionsYaml()
@@ -121,8 +132,16 @@ namespace CodeMonkey.Core.Services
                             type = "object",
                             properties = new {
                                 task = new { type = "string", description = "The specific objective for the subagent" },
-                                permissions = new { type = "string", description = "A comma-separated list of allowed privileged tools (e.g., 'write_file,run_command')" },
-                                initial_context = new { type = "string", description = "Any specific files or data the subagent needs to start" }
+                                permissions = new { 
+                                    type = "array", 
+                                    items = new { type = "string" }, 
+                                    description = "A list of allowed privileged tools (e.g., ['write_file', 'run_command'])" 
+                                },
+                                initial_context = new { 
+                                    type = "array", 
+                                    items = new { type = "string" }, 
+                                    description = "A list of files the subagent should start with to minimize unnecessary tool calls" 
+                                }
                             },
                             required = new[] { "task" }
                         }

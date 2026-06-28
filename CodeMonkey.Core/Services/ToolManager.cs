@@ -1,6 +1,5 @@
 using CodeMonkey.Core.Interfaces;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
+using System.Text.Json;
 
 namespace CodeMonkey.Core.Services
 {
@@ -8,22 +7,23 @@ namespace CodeMonkey.Core.Services
     {
         private readonly IFileSystem _fileSystem;
         private readonly IShell _shell;
-        private readonly IDeserializer _deserializer;
+        private readonly JsonSerializerOptions _options;
 
         public ToolManager(IFileSystem fileSystem, IShell shell)
         {
             _fileSystem = fileSystem;
             _shell = shell;
-            _deserializer = new DeserializerBuilder()
-                .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .Build();
+            _options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
         }
 
-        public Dictionary<string, string>? ParseArguments(string argsYaml)
+        public Dictionary<string, string>? ParseArguments(string argsJson)
         {
             try
             {
-                return _deserializer.Deserialize<Dictionary<string, string>>(argsYaml);
+                return JsonSerializer.Deserialize<Dictionary<string, string>>(argsJson, _options);
             }
             catch
             {
@@ -31,11 +31,11 @@ namespace CodeMonkey.Core.Services
             }
         }
 
-        public T? ParseArguments<T>(string argsYaml)
+        public T? ParseArguments<T>(string argsJson)
         {
             try
             {
-                return _deserializer.Deserialize<T>(argsYaml);
+                return JsonSerializer.Deserialize<T>(argsJson, _options);
             }
             catch
             {
@@ -43,7 +43,7 @@ namespace CodeMonkey.Core.Services
             }
         }
 
-        public string ExecuteTool(string name, string argsYaml, string workingDirectory, List<string>? permissions = null)
+        public string ExecuteTool(string name, string argsJson, string workingDirectory, List<string>? permissions = null)
         {
             if (permissions != null)
             {
@@ -55,7 +55,7 @@ namespace CodeMonkey.Core.Services
 
             try
             {
-                var args = ParseArguments(argsYaml);
+                var args = ParseArguments(argsJson);
                 if (args == null) return "Error: Invalid arguments";
 
                 var recursive = args.ContainsKey("recursive") ? args["recursive"] : "false";
