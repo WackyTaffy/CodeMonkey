@@ -1,23 +1,24 @@
-using Moq;
+using NSubstitute;
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Services;
+using System;
 
 namespace CodeMonkey.Tests
 {
     [TestFixture]
     public class ToolManagerTests
     {
-        private Mock<IFileSystem> _mockFileSystem;
-        private Mock<IShell> _mockShell;
+        private IFileSystem _mockFileSystem;
+        private IShell _mockShell;
         private ToolManager _toolManager;
         private const string WorkingDir = @"C:\temp";
 
         [SetUp]
         public void Setup()
         {
-            _mockFileSystem = new Mock<IFileSystem>();
-            _mockShell = new Mock<IShell>();
-            _toolManager = new ToolManager(_mockFileSystem.Object, _mockShell.Object);
+            _mockFileSystem = Substitute.For<IFileSystem>();
+            _mockShell = Substitute.For<IShell>();
+            _toolManager = new ToolManager(_mockFileSystem, _mockShell);
         }
 
         [Test]
@@ -26,15 +27,14 @@ namespace CodeMonkey.Tests
             // Arrange
             string name = "write_file";
             string argsJson = "{\"path\": \"test.txt\", \"content\": \"hello world\"}";
-            _mockFileSystem.Setup(fs => fs.WriteFile("test.txt", "hello world", WorkingDir))
-                           .Returns("File written successfully");
+            _mockFileSystem.WriteFile("test.txt", "hello world", WorkingDir).Returns("File written successfully");
 
             // Act
             var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
 
             // Assert
             Assert.That(result, Is.EqualTo("File written successfully"));
-            _mockFileSystem.Verify(fs => fs.WriteFile("test.txt", "hello world", WorkingDir), Times.Once);
+            _mockFileSystem.Received(1).WriteFile("test.txt", "hello world", WorkingDir);
         }
 
         [Test]
@@ -43,15 +43,14 @@ namespace CodeMonkey.Tests
             // Arrange
             string name = "read_file";
             string argsJson = "{\"path\": \"test.txt\"}";
-            _mockFileSystem.Setup(fs => fs.ReadFile("test.txt", WorkingDir))
-                           .Returns("file content");
+            _mockFileSystem.ReadFile("test.txt", WorkingDir).Returns("file content");
 
             // Act
             var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
 
             // Assert
             Assert.That(result, Is.EqualTo("file content"));
-            _mockFileSystem.Verify(fs => fs.ReadFile("test.txt", WorkingDir), Times.Once);
+            _mockFileSystem.Received(1).ReadFile("test.txt", WorkingDir);
         }
 
         [Test]
@@ -60,15 +59,14 @@ namespace CodeMonkey.Tests
             // Arrange
             string name = "run_command";
             string argsJson = "{\"command\": \"dir\"}";
-            _mockShell.Setup(s => s.RunCommand("dir", WorkingDir))
-                      .Returns("directory listing");
+            _mockShell.RunCommand("dir", WorkingDir).Returns("directory listing");
 
             // Act
             var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
 
             // Assert
             Assert.That(result, Is.EqualTo("directory listing"));
-            _mockShell.Verify(s => s.RunCommand("dir", WorkingDir), Times.Once);
+            _mockShell.Received(1).RunCommand("dir", WorkingDir);
         }
 
         [Test]
@@ -105,8 +103,8 @@ namespace CodeMonkey.Tests
             // Arrange
             string name = "read_file";
             string argsJson = "{\"path\": \"missing.txt\"}";
-            _mockFileSystem.Setup(fs => fs.ReadFile(It.IsAny<string>(), It.IsAny<string>()))
-                           .Throws(new Exception("Disk error"));
+            _mockFileSystem.ReadFile(Arg.Any<string>(), Arg.Any<string>())
+                           .Returns(_ => throw new Exception("Disk error"));
 
             // Act
             var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);

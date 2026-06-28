@@ -1,4 +1,4 @@
-using Moq;
+using NSubstitute;
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
 using CodeMonkey.Core.Services;
@@ -12,80 +12,63 @@ namespace CodeMonkey.Tests
     [TestFixture]
     public class OrchestratorTests
     {
-        private Mock<ILLMClient> _mockLlmClient;
-        private Mock<IToolManager> _mockToolManager;
-        private Mock<IFileSystem> _mockFileSystem;
+        private ILLMClient _mockLlmClient;
+        private IToolManager _mockToolManager;
+        private IFileSystem _mockFileSystem;
+        private IConversationManager _mockConversationManager;
         private Orchestrator _orchestrator;
         private const string WorkingDir = @"C:\temp";
 
         [SetUp]
         public void Setup()
         {
-            _mockLlmClient = new Mock<ILLMClient>();
-            _mockToolManager = new Mock<IToolManager>();
-            _mockFileSystem = new Mock<IFileSystem>();
-            _orchestrator = new Orchestrator(_mockLlmClient.Object, _mockToolManager.Object, _mockFileSystem.Object);
+            _mockLlmClient = Substitute.For<ILLMClient>();
+            _mockToolManager = Substitute.For<IToolManager>();
+            _mockFileSystem = Substitute.For<IFileSystem>();
+            _mockConversationManager = Substitute.For<IConversationManager>();
+            _orchestrator = new Orchestrator(_mockLlmClient, _mockToolManager, _mockFileSystem, _mockConversationManager);
         }
 
         [Test]
         public void BootstrapContext_SetsSystemPromptAndAddsIndex()
         {
             // Arrange
-            var history = new List<Message>();
-            _mockFileSystem.Setup(fs => fs.ReadFile("INDEX.md", WorkingDir)).Returns("Index content");
+            _mockFileSystem.ReadFile("INDEX.md", WorkingDir).Returns("Index content");
 
             // Act
-            _orchestrator.BootstrapContext(history, WorkingDir);
+            _orchestrator.BootstrapContext(WorkingDir);
 
             // Assert
-            Assert.That(history.Count, Is.EqualTo(2));
-            Assert.That(history[0].Role, Is.EqualTo("system"));
-            Assert.That(history[0].Content, Does.Contain("You are an expert .NET developer"));
-            Assert.That(history[1].Role, Is.EqualTo("context"));
-            Assert.That(history[1].Content, Is.EqualTo("Index content"));
+            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "system" && m.Content != null && m.Content.Contains("You are an expert .NET developer")));
+            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "context" && m.Content == "Index content"));
         }
 
         [Test]
         public void BootstrapContext_IndexNotFound_DoesNotAddIndex()
         {
             // Arrange
-            var history = new List<Message>();
-            _mockFileSystem.Setup(fs => fs.ReadFile("INDEX.md", WorkingDir)).Returns("File not found");
+            _mockFileSystem.ReadFile("INDEX.md", WorkingDir).Returns("File not found");
 
             // Act
-            _orchestrator.BootstrapContext(history, WorkingDir);
+            _orchestrator.BootstrapContext(WorkingDir);
 
             // Assert
-            Assert.That(history.Count, Is.EqualTo(1));
-            Assert.That(history[0].Role, Is.EqualTo("system"));
+            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "system"));
+            _mockConversationManager.DidNotReceive().AddMessage(Arg.Is<Message>(m => m.Role == "context"));
         }
 
         [Test]
-        public async Task CompactContextAsync_SummarizesAndRebootstraps()
+        public async Task CompactContextAsync_CallsConversationManagerCompact()
         {
             // Arrange
-            var history = new List<Message> { new Message("user", "hi"), new Message("assistant", "hello") };
-            var mockResponse = new ChatResponse
-            {
-                Choices = new List<Choice>
-                {
-                    new Choice { Message = new Message("assistant", "This is a summary") }
-                }
-            };
-            _mockLlmClient.Setup(c => c.GetChatCompletionAsync(It.IsAny<List<Message>>())).ReturnsAsync(mockResponse);
-            _mockFileSystem.Setup(fs => fs.ReadFile("INDEX.md", WorkingDir)).Returns("Index content");
+            _mockConversationManager.ShouldCompact(Arg.Any<int>()).Returns(true);
 
             // Act
-            var result = await _orchestrator.CompactContextAsync(history, WorkingDir);
+            var result = await _orchestrator.CompactContextAsync(WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("This is a summary"));
-            // Verify history was cleared and contains system prompt + index + summary
-            Assert.That(history.Count, Is.EqualTo(3));
-            Assert.That(history[0].Role, Is.EqualTo("system"));
-            Assert.That(history[1].Role, Is.EqualTo("context"));
-            Assert.That(history[2].Role, Is.EqualTo("system"));
-            Assert.That(history[2].Content, Does.Contain("Previous session summary: This is a summary"));
+            Assert.That(result, Is.EqualTo("Context has been compacted."));
+            await _mockConversationManager.Received().CompactAsync(_mockLlmClient, Arg.Any<string>());
         }
 
         [Test]
@@ -93,7 +76,9 @@ namespace CodeMonkey.Tests
         {
             // Arrange
             string userInput = "Hello";
-            var history = new List<Message>();
+            var messages = new List<Message> { new Message("user", userInput) };
+            _mockConversationManager.GetMessages().Returns(messages);
+            
             var mockResponse = new ChatResponse
             {
                 Choices = new List<Choice>
@@ -101,13 +86,15 @@ namespace CodeMonkey.Tests
                     new Choice { Message = new Message("assistant", "Hi there!") }
                 }
             };
-            _mockLlmClient.Setup(c => c.GetChatCompletionAsync(It.IsAny<List<Message>>())).ReturnsAsync(mockResponse);
+            _mockLlmClient.GetChatCompletionAsync(Arg.Any<List<Message>>()).Returns(Task.FromResult(mockResponse));
 
             // Act
-            var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir, history);
+            var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir);
 
             // Assert
             Assert.That(result, Is.EqualTo("Hi there!"));
+            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "user" && m.Content == userInput));
+            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "assistant" && m.Content == "Hi there!"));
         }
 
         [Test]
@@ -115,7 +102,8 @@ namespace CodeMonkey.Tests
         {
             // Arrange
             string userInput = "List files";
-            var history = new List<Message>();
+            var messages = new List<Message> { new Message("user", userInput) };
+            _mockConversationManager.GetMessages().Returns(messages);
             
             // First response: call tool
             var response1 = new ChatResponse
@@ -140,19 +128,21 @@ namespace CodeMonkey.Tests
                 }
             };
 
-            _mockLlmClient.SetupSequence(c => c.GetChatCompletionAsync(It.IsAny<List<Message>>()))
-                          .ReturnsAsync(response1)
-                          .ReturnsAsync(response2);
+            _mockLlmClient.GetChatCompletionAsync(Arg.Any<List<Message>>())
+                          .Returns(
+                              Task.FromResult(response1),
+                              Task.FromResult(response2)
+                          );
 
-            _mockToolManager.Setup(tm => tm.ExecuteTool("get_file_list", "{\"recursive\": \"false\"}", WorkingDir, null))
+            _mockToolManager.ExecuteTool("get_file_list", "{\"recursive\": \"false\"}", WorkingDir, null)
                            .Returns("a.txt\nb.txt");
 
             // Act
-            var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir, history);
+            var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir);
 
             // Assert
             Assert.That(result, Is.EqualTo("Here are the files: a.txt, b.txt"));
-            _mockToolManager.Verify(tm => tm.ExecuteTool("get_file_list", "{\"recursive\": \"false\"}", WorkingDir, null), Times.Once);
+            _mockToolManager.Received(1).ExecuteTool("get_file_list", "{\"recursive\": \"false\"}", WorkingDir, null);
         }
 
         [Test]
@@ -160,7 +150,8 @@ namespace CodeMonkey.Tests
         {
             // Arrange
             string userInput = "Run a complex task";
-            var history = new List<Message>();
+            var messages = new List<Message> { new Message("user", userInput) };
+            _mockConversationManager.GetMessages().Returns(messages);
             
             // 1. Main agent decides to dispatch a subagent
             var response1 = new ChatResponse
@@ -177,7 +168,7 @@ namespace CodeMonkey.Tests
                 }
             };
 
-            // 2. Subagent provides a result
+            // 2. Subagent provides a result (simulated via LLM client call for subagent loop)
             var response2 = new ChatResponse
             {
                 Choices = new List<Choice>
@@ -195,13 +186,22 @@ namespace CodeMonkey.Tests
                 }
             };
 
-            _mockLlmClient.SetupSequence(c => c.GetChatCompletionAsync(It.IsAny<List<Message>>()))
-                          .ReturnsAsync(response1)
-                          .ReturnsAsync(response2)
-                          .ReturnsAsync(response3);
+            _mockLlmClient.GetChatCompletionAsync(Arg.Any<List<Message>>())
+                          .Returns(
+                          Task.FromResult(response1),
+                          Task.FromResult(response2),
+                          Task.FromResult(response3)
+                          );
+
+            _mockToolManager.ParseArguments<SubagentDispatchArgs>(Arg.Any<string>()).Returns(new SubagentDispatchArgs
+            {
+                Task = "Find errors",
+                Permissions = new List<string> { "read_file" },
+                InitialContext = new List<string>()
+            });
 
             // Act
-            var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir, history);
+            var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir);
 
             // Assert
             Assert.That(result, Is.EqualTo("The subagent found 2 errors, I will now fix them"));
