@@ -1,9 +1,17 @@
 The following bugs or behaviors have been noted by a user and require investigation.
 
-## File List Tool
-- **Observed Behavior:** When the main agent attempts to use the get_file_list tool, it doesn't seem to actually receive the desired output back, leading the agent to do multiple get_file_list attempts followed by using run_command with "dir" as the fallback
-	- This may be an issue for subagents as well, but I am unsure
+## Oversized File Read Context Overflow
+- **Observed Behavior:** The agent could read a file that is greater in size than the agent's context window (i.e. 15k context window cannot hold a 20k token file). Once an oversized file is added to the context, it causes all further LLM requests to fail because of the context overflow. This cannot even be self healed due to the inability to compact the context once it is over that size. 
+	- Oversized files can also cause compaction-thrashing where the agent reads file -> hit's compaction trigger due to context size -> compacts (which loses the file content) -> must read file again to get the contents -> context overflow -> compaction -> cycle continues
 - **Logs:**
-	- `C:\Sourcecode\CodeMonkey\.agents\logs\6-28_file-list-tool-fail_1.log`
 	- `C:\Sourcecode\CodeMonkey\.agents\logs\6-28_file-list-tool-fail_2.log`
 
+## Self-Destructing Command Call
+- **Observed Behavior:** The agent is able to kill it's own process with `taskkill` using the `run_command` tool.
+- **Desired Behavior:** If the app is about to do something that could destroy it's own process, tell it that is what will happen and advise that it should escalate to a human
+- **Logs:**
+	- `C:\Sourcecode\CodeMonkey\.agents\logs\6-28_self-kill.log`
+
+## Confusion during output
+- **Logs:**
+	- `C:\Sourcecode\CodeMonkey\.agents\logs\6-28_response-confusion.log`

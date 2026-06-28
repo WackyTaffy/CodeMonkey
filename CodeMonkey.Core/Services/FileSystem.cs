@@ -26,11 +26,8 @@ namespace CodeMonkey.Core.Services
             return File.Exists(fullPath);
         }
 
-        public string GetFileList(string recursiveStr, string searchPattern, string workingDirectory)
+        public string GetFileList(bool recursive, string searchPattern, string workingDirectory)
         {
-            bool recursive = false;
-            bool.TryParse(recursiveStr, out recursive);
-
             var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
             string[] rawFileList = Directory.GetFiles(workingDirectory, searchPattern, searchOption);
 

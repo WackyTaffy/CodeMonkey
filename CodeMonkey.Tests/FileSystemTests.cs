@@ -81,7 +81,7 @@ namespace CodeMonkey.Tests
             File.WriteAllText(Path.Combine(_tempDir, "file1.txt"), "1");
             File.WriteAllText(Path.Combine(_tempDir, "file2.txt"), "2");
 
-            var result = _fileSystem.GetFileList("false", "*", _tempDir);
+            var result = _fileSystem.GetFileList(false, "*", _tempDir);
 
             Assert.That(result, Does.Contain("file1.txt"));
             Assert.That(result, Does.Contain("file2.txt"));
@@ -94,7 +94,7 @@ namespace CodeMonkey.Tests
             File.WriteAllText(Path.Combine(_tempDir, "root.txt"), "root");
             File.WriteAllText(Path.Combine(_tempDir, "subdir", "nested.txt"), "nested");
 
-            var result = _fileSystem.GetFileList("true", "*", _tempDir);
+            var result = _fileSystem.GetFileList(true, "*", _tempDir);
 
             Assert.That(result, Does.Contain("root.txt"));
             
@@ -121,7 +121,7 @@ namespace CodeMonkey.Tests
             Directory.CreateDirectory(Path.Combine(_tempDir, "config"));
             File.WriteAllText(Path.Combine(_tempDir, ".git"), "gitconfig");
 
-            var result = _fileSystem.GetFileList("true", "*", _tempDir);
+            var result = _fileSystem.GetFileList(true, "*", _tempDir);
 
             bool containsSrc = result.Contains("src\\app.cs") || result.Contains("src/app.cs");
             Assert.That(containsSrc, Is.True);
@@ -133,7 +133,7 @@ namespace CodeMonkey.Tests
         [Test]
         public void GetFileList_EmptyDirectory_ReturnsNoFilesMessage()
         {
-            var result = _fileSystem.GetFileList("false", "*", _tempDir);
+            var result = _fileSystem.GetFileList(false, "*", _tempDir);
             Assert.That(result, Is.EqualTo("No files in working directory"));
         }
     }

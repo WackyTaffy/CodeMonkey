@@ -14,3 +14,12 @@
 		- Deletion of lines (i.e. "delete lines 20-30") -> decrease number of lines in file
 - DOCUMENTATION
 	- Allow line ranges to be specifically called out in documentation to allow targeted/focused operations
+
+## Display Reasoning
+- I want to see what the reasoning is behind each of the LLM responses. I know a string with the reasoning is usually returned with the response. For now the UI doesn't need show the reasoning streaming, I just want to be able to view the reasoning behind each tool call
+
+## Streaming
+- I want the reasoning and response generation streamed to the UI (only if not using Console window as primary UI) so I can see the response being created in real time
+
+## Stop generation
+- I want to be able to stop the current agent(s) and give a completely new prompt. Sometimes I can tell that the agent is going down the wrong path and I want a way to stop and redirect it without killing the entire session and losing conversation history
