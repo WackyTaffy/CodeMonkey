@@ -10,11 +10,11 @@ namespace CodeMonkey.Core.Services
         private readonly IShell _shell;
         private readonly JsonSerializerOptions _options;
 
-        public ToolManager(IFileSystem fileSystem, IShell shell)
+        public ToolManager(IFileSystem _fileSystem, IShell _shell)
         {
-            _fileSystem = fileSystem;
-            _shell = shell;
-            _options = new JsonSerializerOptions
+            this._fileSystem = _fileSystem;
+            this._shell = _shell;
+            this._options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             };
@@ -74,28 +74,28 @@ namespace CodeMonkey.Core.Services
         private string ExecuteWriteFile(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<WriteFileArgs>(argsJson);
-            if (args == null) return "Error: Invalid arguments";
+            if (args == null) throw new ArgumentException("Invalid arguments");
             return _fileSystem.WriteFile(args.Path, args.Content, workingDirectory);
         }
 
         private string ExecuteReadFile(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<ReadFileArgs>(argsJson);
-            if (args == null) return "Error: Invalid arguments";
+            if (args == null) throw new ArgumentException("Invalid arguments");
             return _fileSystem.ReadFile(args.Path, workingDirectory);
         }
 
         private string ExecuteGetFileList(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<GetFileListArgs>(argsJson);
-            if (args == null) return "Error: Invalid arguments";
+            if (args == null) throw new ArgumentException("Invalid arguments");
             return _fileSystem.GetFileList(args.Recursive, args.SearchPattern, workingDirectory);
         }
 
         private string ExecuteRunCommand(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<RunCommandArgs>(argsJson);
-            if (args == null) return "Error: Invalid arguments";
+            if (args == null) throw new ArgumentException("Invalid arguments");
             return _shell.RunCommand(args.Command, workingDirectory);
         }
 

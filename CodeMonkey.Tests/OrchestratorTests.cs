@@ -61,13 +61,14 @@ namespace CodeMonkey.Tests
         public async Task CompactContextAsync_CallsConversationManagerCompact()
         {
             // Arrange
-            _mockConversationManager.ShouldCompact(Arg.Any<int>()).Returns(true);
+            string expectedSummary = "Context has been compacted.";
+            _mockConversationManager.CompactAsync(_mockLlmClient, Arg.Any<string>()).Returns(Task.FromResult(expectedSummary));
 
             // Act
             var result = await _orchestrator.CompactContextAsync(WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("Context has been compacted."));
+            Assert.That(result, Is.EqualTo(expectedSummary));
             await _mockConversationManager.Received().CompactAsync(_mockLlmClient, Arg.Any<string>());
         }
 

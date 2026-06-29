@@ -1,24 +1,27 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using CodeMonkey.UI;
 
-namespace CodeMonkey.UI;
-
-public static class MauiProgram
+namespace CodeMonkey.UI
 {
-	public static MauiApp CreateMauiApp()
-	{
-		var builder = MauiApp.CreateBuilder();
-		builder
-			.UseMauiApp<App>()
-			.ConfigureFonts(fonts =>
-			{
-				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-			});
+    public static class MauiProgram
+    {
+        public static MauiApp CreateMauiApp()
+        {
+            var builder = MauiApp.CreateBuilder();
+            builder
+                .UseMauiApp<App>()
+                .ConfigureFonts(fonts =>
+                {
+                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                    fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                });
 
-#if DEBUG
-		builder.Logging.AddDebug();
-#endif
+            builder.UseBlazorWebView();
 
-		return builder.Build();
-	}
+            // Configure DI
+            DependencyInjection.ConfigureServices(builder.Services);
+
+            return builder.Build();
+        }
+    }
 }

@@ -1,0 +1,13 @@
+Role: Senior .NET & Blazor Developer
+Task: Implement the Code Monkey Blazor UI.
+Primary Directive: Your absolute source of truth is the file `docs/designs/blazor_ui_implementation_plan.md`.
+
+Instructions:
+1. Initialize: Read `docs/designs/blazor_ui_implementation_plan.md` to understand the architectural decisions and the current state of the project.
+2. Follow the Run-book: Adhere strictly to the "Execution Instructions" and "Operating Rules" defined at the top of the plan.
+3. Sequential Progress: Proceed through Phase 1 to Phase 6. Do not skip ahead.
+4. Definition of Done: For every task, you must provide the implementation and the corresponding NUnit/NSubstitute tests. Ensure the project builds successfully after every major change.
+5. State Management: You are required to update the `[ ]` checkboxes to `[x]` in the plan file as you complete each task to track your progress.
+6. Tooling: Use subagents for the tasks explicitly marked as "Subagent Tasks" to maintain a clean main context.
+
+Start now by reading the plan and initializing Phase 1.

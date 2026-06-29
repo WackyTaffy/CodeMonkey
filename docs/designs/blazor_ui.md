@@ -1,29 +1,51 @@
 # Handoff: Code Monkey UI Implementation (Blazor)
 
 ## Objective
-The goal is to design and implement a user interface for the Code Monkey application. The user has expressed interest in using **Blazor**.
+The goal is to design and implement a professional-grade user interface for the Code Monkey application using **Blazor Hybrid (MAUI)**. The UI serves as a "Developer Command Center," integrating agent control, project state, and native filesystem access.
 
-## Current State
-- The application currently exists as a Console application (`CodeMonkey.Console`).
-- The core logic, including the LLM orchestration, tool management, and conversation handling, is encapsulated in `CodeMonkey.Core`.
-- The `Orchestrator` handles the main agent loop and sub-agent dispatch.
-- The system is highly modular, making it suitable for integration with a new UI layer.
+## Core Requirements
 
-## Requirements for the Next Agent
-The next agent must **not** start coding immediately. Instead, they are required to use the `grill-me` skill to stress-test and refine the design with the user.
+### 1. Interaction & Developer Experience (DX)
+- **Keyboard-First Workflow**:
+    - Global hotkeys for common actions (Send, Stop, Save).
+    - A **Command Palette** (`Ctrl+K`) for quick navigation and agent commands.
+- **IDE & VCS Integration**:
+    - **Git Status**: Real-time display of the current active Git branch in the UI status bar.
+    - **Jump to File**: Clickable file paths in logs and context that open the file in the user's configured IDE.
+    - **Side-by-Side Diff**: Visual comparison of current vs. proposed file changes with granular Accept/Reject controls.
+- **Context Control**:
+    - Ability to add files/folders via glob patterns.
+    - Token pressure indicator (visual gauge of context window usage).
 
-### Specific Tasks:
-1. **Design Phase (Mandatory)**: Use the `.agents/skills/grill-me/SKILL.md` process to interview the user about the Blazor UI design. 
-   - Focus on: Hosting model (WASM vs Server), State management, Interaction patterns (streaming logs vs static updates), and Integration points with `CodeMonkey.Core`.
-   - Ensure a shared understanding is reached and a design specification is documented before any implementation begins.
-2. **Architecture Planning**: Define how the Blazor app will communicate with the `Orchestrator` (e.g., via a Web API, a shared service, or a direct reference in a hybrid app).
-3. **Implementation**: Once the design is locked, implement the UI following the agreed-upon specification.
+### 2. Intent-Based Execution (HITL 2.0)
+Instead of simple approval modals, the system uses a **Manifest + Confidence** model:
+- **The Manifest**: For complex operations, the agent proposes an "Execution Plan" (a manifest of intended changes and commands) before execution.
+- **Confidence-Based Gating**:
+    - **Low Risk** (e.g., `read_file`, `list_dir`): Auto-approved; executed silently.
+    - **Medium Risk** (e.g., modifying existing code in known files): Auto-approved but flagged in the log with a quick "Revert" option.
+    - **High Risk** (e.g., `run_command`, `delete_file`, large-scale refactors): Execution is blocked until the user approves the Manifest.
 
-## Reference Files
-- `CodeMonkey.Core/Services/Orchestrator.cs`: Main logic for agent execution.
-- `.agents/skills/grill-me/SKILL.md`: The required process for design refinement.
-- `INDEX.md`: Project structure overview.
+### 3. Secure Rendering Pipeline
+To eliminate XSS risks and increase UI control, the system avoids raw HTML rendering:
+- **AST-to-Component Rendering**: 
+    - The LLM's Markdown output is parsed into an **Abstract Syntax Tree (AST)** via `Markdig`.
+    - The AST is mapped directly to **Native Blazor Components** (e.g., `MarkdownCodeBlock`, `MarkdownTable`).
+    - **Zero `MarkupString`**: By using standard Blazor data binding, XSS is mathematically impossible as no raw HTML strings from the LLM are ever rendered directly.
 
-## Success Criteria
-- A detailed design specification for the Blazor UI.
-- A functional UI that allows users to interact with Code Monkey, view logs in real-time, and manage their project context.
+### 4. Performance & Reliability
+- **Log Management**:
+    - Throttled rendering (batching) to prevent UI thread exhaustion.
+    - Bounded circular buffers for logs to prevent memory leaks.
+- **State Integrity**:
+    - Atomic session saves (write-to-temp then rename).
+    - Global exception handling to isolate Orchestrator failures from the UI process.
+- **Responsiveness**:
+    - Response streaming for chat bubbles via `IAsyncEnumerable`.
+
+## Integration Architecture
+- **Hosting**: Blazor Hybrid (MAUI).
+- **Decoupling**: UI $\rightarrow$ `IOrchestrator` / `ViewModel` abstraction.
+- **Core Services**:
+    - `GitService`: For branch tracking and VCS state.
+    - `ManifestService`: For managing proposed agent plans.
+    - `ComponentRenderer`: For the AST $\rightarrow$ Blazor Component pipeline.

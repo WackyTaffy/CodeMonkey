@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "590140e5dc0b7713",
+        "id": "baf41820ea27c982",
         "type": "tabs",
         "children": [
           {
-            "id": "e8770600dfb5af80",
+            "id": "b7b01b97507fb77c",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/subagent_design.md",
+                "file": "docs/designs/blazor_ui_implementation_plan.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "subagent_design"
+              "title": "blazor_ui_implementation_plan"
             }
           }
         ]
@@ -183,32 +183,44 @@
       "bases:Create new base": false
     }
   },
-  "active": "8ae8f1a370bb5789",
+  "active": "b7b01b97507fb77c",
   "lastOpenFiles": [
-    "CodeMonkey.Tests/bin/Debug/net8.0/YamlDotNet.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.Testing.Platform.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.Testing.Extensions.VSTestBridge.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.VisualStudio.TestPlatform.Common.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.VisualStudio.TestPlatform.ObjectModel.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.CommunicationUtilities.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.CrossPlatEngine.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.PlatformAbstractions.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.CoreUtilities.dll",
-    "CodeMonkey.Tests/bin/Debug/net8.0/testhost.dll",
-    "CodeMonkey.Core/Models/SubagentDispatchArgs.cs",
+    "CodeMonkey.Tests/bin/Debug/net10.0/NSubstitute.dll",
+    "CodeMonkey.Tests/bin/Debug/net10.0/nunit.framework.dll",
+    "CodeMonkey.Tests/bin/Debug/net10.0/Microsoft.Testing.Platform.dll",
+    "CodeMonkey.Tests/bin/Debug/net10.0/Microsoft.Testing.Extensions.VSTestBridge.dll",
+    "CodeMonkey.Tests/bin/Debug/net10.0/Newtonsoft.Json.dll",
+    "CodeMonkey.Tests/bin/Debug/net10.0/Microsoft.VisualStudio.TestPlatform.Common.dll",
+    "CodeMonkey.Tests/bin/Debug/net10.0/Microsoft.VisualStudio.TestPlatform.ObjectModel.dll",
+    "CodeMonkey.Tests/bin/Debug/net10.0/Microsoft.TestPlatform.CommunicationUtilities.dll",
+    "CodeMonkey.Tests/bin/Debug/net10.0/Microsoft.TestPlatform.CrossPlatEngine.dll",
+    "CodeMonkey.Tests/bin/Debug/net10.0/Microsoft.TestPlatform.PlatformAbstractions.dll",
+    "CodeMonkey.Tests/bin/Debug/net10.0/Microsoft.TestPlatform.CoreUtilities.dll",
+    "docs/designs/blazor_ui.md",
+    "docs/designs/blazor_ui_implementation_plan.md",
+    ".agents/skills/grill-me/SKILL.md",
+    ".agents/open_investigations.md",
+    "docs/designs/future-improvements.md",
+    ".agents/analysis/file_list_root_cause.md",
+    "DOCS_REVIEW_TRACKING.md",
+    ".agents/git_plan/uncommitted_changes_analysis.md",
+    "review_handoff.md",
+    "REVIEW_FEEDBACK_README.md",
+    "REVIEW_VERDICT_README.md",
+    "docs/designs/line_range_extraction.md",
+    ".agents/analysis/context_compaction_failure.md",
+    "AGENTS.md",
+    "2026-06-28.md",
+    "Untitled.canvas",
+    "docs/handoffs/GBNF_grammar_schemas.md",
+    "docs/designs/conversation_compaction.md",
+    "docs/subagent_design.md",
     "docs/designs/user_experience.md",
     "docs/designs/developer_pragmatism.md",
     "docs/designs/architect_vision.md",
     "README.md",
     "docs/prompt-examples.md",
     "docs/installation-guide.md",
-    "CodeMonkey.Core/INDEX.md",
-    "docs/subagent_design.md",
-    "CodeMonkey.Tests/INDEX.md",
-    "CodeMonkey.Console/INDEX.md",
-    "INDEX.md",
-    "YAML_MIGRATION_PLAN.md",
-    "TEST_PLAN.md",
-    "spec_SubagentDispatchSystem.md"
+    "CodeMonkey.Core/INDEX.md"
   ]
 }
