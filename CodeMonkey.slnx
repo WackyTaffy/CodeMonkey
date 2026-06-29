@@ -2,4 +2,5 @@
   <Project Path="CodeMonkey.Console/CodeMonkey.Cli.csproj" />
   <Project Path="CodeMonkey.Core/CodeMonkey.Core.csproj" />
   <Project Path="CodeMonkey.Tests/CodeMonkey.Tests.csproj" />
+  <Project Path="CodeMonkey.UI/CodeMonkey.UI.csproj" />
 </Solution>

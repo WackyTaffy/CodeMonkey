@@ -1,0 +1,98 @@
+@using CodeMonkey.Core.Services
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@inject ILogManager LogManager
+@implements IDisposable
+
+<div class="log-viewer-container">
+    <div class="log-viewer-header">
+        <h3>System Logs</h3>
+        <button class="btn btn-sm btn-secondary" @onclick="ClearLogs">Clear View</button>
+    </div>
+    <div class="log-viewer-content">
+        <Virtualize Items="@_logs" Context="logLine">
+            <div class="log-line">
+                @logLine
+            </div>
+        </Virtualize>
+    </div>
+</div>
+
+<style>
+    .log-viewer-container {
+        display: flex;
+        flex-direction: column;
+        height: 400px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        font-family: 'Cascadia Code', 'Courier New', Courier, monospace;
+        margin: 10px 0;
+    }
+
+    .log-viewer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 5px 10px;
+        background-color: #333;
+        border-bottom: 1px solid #444;
+        color: white;
+    }
+
+    .log-viewer-header h3 {
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+    .log-viewer-content {
+        overflow-y: auto;
+        flex-grow: 1;
+        padding: 5px 0;
+    }
+
+    .log-line {
+        padding: 2px 10px;
+        white-space: pre-wrap;
+        font-size: 0.85rem;
+        border-bottom: 1px solid #2a2a2a;
+    }
+
+    .log-line:hover {
+        background-color: #2a2a2a;
+    }
+</style>
+
+@code {
+    private List<string> _logs = new();
+
+    protected override void OnInitialized()
+    {
+        RefreshLogs();
+        LogManager.OnLogAdded += HandleLogAdded;
+    }
+
+    private void HandleLogAdded(string message)
+    {
+        InvokeAsync(() =>
+        {
+            RefreshLogs();
+            StateHasChanged();
+        });
+    }
+
+    private void RefreshLogs()
+    {
+        _logs = LogManager.GetRecentLogs(10000).ToList();
+    }
+
+    private void ClearLogs()
+    {
+        RefreshLogs();
+    }
+
+    public void Dispose()
+    {
+        LogManager.OnLogAdded -= HandleLogAdded;
+    }
+}

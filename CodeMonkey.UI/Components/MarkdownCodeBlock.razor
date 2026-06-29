@@ -1,0 +1,73 @@
+@using CodeMonkey.UI.Rendering.Models
+
+<div class="code-block-container">
+    @if (!string.IsNullOrEmpty(Language))
+    {
+        <div class="code-block-header">
+            <span class="language-label">@Language</span>
+            <button class="copy-btn" @onclick="CopyCode">Copy</button>
+        </div>
+    }
+    <pre class="code-block-content"><code>@Code</code></pre>
+</div>
+
+<style>
+    .code-block-container {
+        margin: 1rem 0;
+        border-radius: 6px;
+        overflow: hidden;
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        border: 1px solid #333;
+    }
+
+    .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 12px;
+        background-color: #2d2d2d;
+        border-bottom: 1px solid #3f3f3f;
+        font-family: sans-serif;
+        font-size: 0.75rem;
+        color: #aaa;
+    }
+
+    .language-label {
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+
+    .copy-btn {
+        background: none;
+        border: none;
+        color: #aaa;
+        cursor: pointer;
+        font-size: 0.75rem;
+    }
+
+    .copy-btn:hover {
+        color: #fff;
+    }
+
+    .code-block-content {
+        margin: 0;
+        padding: 12px;
+        overflow-x: auto;
+        font-family: 'Cascadia Code', 'Courier New', Courier, monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+</style>
+
+@code {
+    [Parameter] public string Code { get; set; } = string.Empty;
+    [Parameter] public string Language { get; set; } = string.Empty;
+
+    private async Task CopyCode()
+    {
+        // In a real MAUI app, we would use the Clipboard API
+        // For now, this is a placeholder since we are in a simulated environment
+        await Task.CompletedTask;
+    }
+}

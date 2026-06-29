@@ -1,5 +1,154 @@
 @page "/"
+@using CodeMonkey.UI.Components
+@using CodeMonkey.UI.ViewModels
+@using Microsoft.AspNetCore.Components.Web
+@inject ChatViewModel ChatVM
 
-<h1>Hello, world!</h1>
+<div class="app-container">
+    <div class="chat-section">
+        <div class="messages-container">
+            @foreach (var msg in ChatVM.Messages)
+            {
+                <div class="message @(msg.Role == "user" ? "user-msg" : "assistant-msg")">
+                    <div class="role-label">@msg.Role.ToUpper()</div>
+                    <MarkdownViewer Content="@msg.Content" />
+                </div>
+            }
+        </div>
+        
+        <div class="input-area">
+            <input @bind="ChatVM.UserInput" 
+                   @bind:event="oninput" 
+                   @onkeypress="HandleKeyPress" 
+                   placeholder="Ask CodeMonkey something..." 
+                   disabled="@ChatVM.IsProcessing" />
+            <button @onclick="SendMessage" disabled="@ChatVM.IsProcessing">
+                @(ChatVM.IsProcessing ? "Processing..." : "Send")
+            </button>
+        </div>
+    </div>
 
-Welcome to your new MAUI Blazor Hybrid app.
+    <div class="sidebar">
+        <LogViewer />
+    </div>
+</div>
+
+@code {
+    private async Task SendMessage()
+    {
+        await ChatVM.SendMessageAsync();
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SendMessage();
+        }
+    }
+}
+
+<style>
+    .app-container {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 20px;
+        height: 100vh;
+        padding: 10px;
+        box-sizing: border-box;
+        background-color: #1e1e1e;
+        color: white;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .chat-section {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: #252526;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #333;
+    }
+
+    .messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .message {
+        padding: 12px;
+        border-radius: 8px;
+        max-width: 85%;
+        line-height: 1.5;
+    }
+
+    .user-msg {
+        align-self: flex-end;
+        background-color: #007acc;
+        color: white;
+        border-bottom-right-radius: 0;
+    }
+
+    .assistant-msg {
+        align-self: flex-start;
+        background-color: #3c3c3c;
+        color: #ddd;
+        border-bottom-left-radius: 0;
+        border: 1px solid #444;
+    }
+
+    .role-label {
+        font-size: 0.7rem;
+        font-weight: bold;
+        margin-bottom: 4px;
+        opacity: 0.7;
+    }
+
+    .input-area {
+        display: flex;
+        gap: 10px;
+        padding: 20px;
+        background: #2d2d2d;
+        border-top: 1px solid #333;
+    }
+
+    .input-area input {
+        flex: 1;
+        background: #3c3c3c;
+        border: 1px solid #555;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 4px;
+        outline: none;
+    }
+
+    .input-area input:focus {
+        border-color: #007acc;
+    }
+
+    .input-area button {
+        background: #007acc;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .input-area button:disabled {
+        background: #555;
+        cursor: not-allowed;
+    }
+
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+</style>

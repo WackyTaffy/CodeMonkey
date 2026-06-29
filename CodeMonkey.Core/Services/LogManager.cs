@@ -10,7 +10,7 @@ namespace CodeMonkey.Core.Services
     {
         void Log(string message);
         IEnumerable<string> GetRecentLogs(int count);
-        event Action<string> OnLogAdded;
+        event Action<string>? OnLogAdded;
     }
 
     public class LogManager : ILogManager
@@ -19,11 +19,10 @@ namespace CodeMonkey.Core.Services
         private readonly string _logFilePath;
         private const int MaxBufferSize = 1000;
 
-        public event Action<string> OnLogAdded;
+        public event Action<string>? OnLogAdded;
 
         public LogManager()
         {
-            // In Core, we might want a more configurable path, but for now, we follow the existing logic.
             _logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "codemonkey.log");
         }
 
@@ -31,14 +30,12 @@ namespace CodeMonkey.Core.Services
         {
             var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}";
             
-            // UI Buffer
             _buffer.Enqueue(logEntry);
             while (_buffer.Count > MaxBufferSize)
             {
                 _buffer.TryDequeue(out _);
             }
 
-            // Persistent File
             try
             {
                 File.AppendAllText(_logFilePath, logEntry + Environment.NewLine);

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using CodeMonkey.Core.Interfaces;
+using CodeMonkey.Core.Models;
 
 namespace CodeMonkey.Core.Services
 {
@@ -27,7 +28,6 @@ namespace CodeMonkey.Core.Services
             }
             catch (Exception ex)
             {
-                // In a real app, we'd log this to ILogManager
                 Console.WriteLine($"Failed to save preferences: {ex.Message}");
             }
         }

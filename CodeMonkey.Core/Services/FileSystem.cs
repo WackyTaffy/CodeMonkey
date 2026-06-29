@@ -13,6 +13,31 @@ namespace CodeMonkey.Core.Services
             return File.Exists(fullPath) ? File.ReadAllText(fullPath) : FileNotFoundMessage;
         }
 
+        public string ReadFileChunked(string path, int startLine, int endLine, string workingDirectory)
+        {
+            string fullPath = Path.IsPathRooted(path) ? path : Path.Combine(workingDirectory, path);
+            if (!File.Exists(fullPath)) return FileNotFoundMessage;
+
+            try
+            {
+                var lines = File.ReadAllLines(fullPath);
+                if (lines.Length == 0) return "File is empty.";
+
+                int start = Math.Max(0, startLine - 1);
+                int end = Math.Min(lines.Length - 1, endLine - 1);
+
+                if (start > end) return "Invalid line range.";
+                if (start < 0) start = 0;
+
+                var chunk = lines.Skip(start).Take(end - start + 1);
+                return $"--- Lines {start + 1} to {end + 1} ---\n" + string.Join(Environment.NewLine, chunk);
+            }
+            catch (Exception ex)
+            {
+                return $"Error reading chunk: {ex.Message}";
+            }
+        }
+
         public string WriteFile(string path, string content, string workingDirectory)
         {
             string fullPath = Path.IsPathRooted(path) ? path : Path.Combine(workingDirectory, path);

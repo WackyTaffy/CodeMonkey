@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using CodeMonkey.UI;
+using Microsoft.AspNetCore.Components.WebView.Maui;
 
 namespace CodeMonkey.UI
 {
@@ -16,7 +17,7 @@ namespace CodeMonkey.UI
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
 
-            builder.UseBlazorWebView();
+            builder.Services.AddMauiBlazorWebView();
 
             // Configure DI
             DependencyInjection.ConfigureServices(builder.Services);

@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CodeMonkey.Core\CodeMonkey.Core.csproj" />
+    <ProjectReference Include="..\CodeMonkey.UI.Rendering\CodeMonkey.UI.Rendering.csproj" />
   </ItemGroup>
 
   <ItemGroup>

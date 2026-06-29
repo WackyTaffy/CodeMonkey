@@ -17,15 +17,6 @@ namespace CodeMonkey.Cli
         private static IToolManager _toolManager = null!;
         private static IOrchestrator _orchestrator = null!;
         private static IConversationManager _conversationManager = null!;
-        private static GemmaTokenHelper _tokenHelper = null!;
-
-        private static readonly List<string> _invalidDir = new() { "bin", "obj", ".obsidian", ".vs" };
-
-        private static string _sysPrompt_old => "You are an expert .NET developer. You have access to tools to read/write files and run shell commands. " +
-                            "Always verify your work by running 'dotnet build'. If you see errors, analyze the output and fix the code. " +
-                            $"You are working in '{WorkingDirectory}'. ";
-        private static string _sysPrompt => "You are a helpful assisstant. You have access to tools to read/write files and run shell commands. " +
-                            $"You are working in '{WorkingDirectory}'. ";
 
         public static async Task Main(string[] args)
         {
@@ -35,11 +26,18 @@ namespace CodeMonkey.Cli
             _llmClient = new LLMClient(_client);
             _fileSystem = new Core.Services.FileSystem();
             _shell = new Shell();
-            _toolManager = new ToolManager(_fileSystem, _shell);
+
+            // Initialize security services
+            var manifestService = new ManifestService();
+            var userPreferences = new UserPreferences();
+            var sessionLedger = new SessionLedger();
+
+            _toolManager = new ToolManager(_fileSystem, _shell, manifestService, userPreferences, sessionLedger);
             _conversationManager = new ConversationManager();
-            _orchestrator = new Orchestrator(_llmClient, _toolManager, _fileSystem, _conversationManager);
-            _orchestrator.Verbose = verbose;
-            _tokenHelper = new GemmaTokenHelper();
+            _orchestrator = new Orchestrator(_llmClient, _toolManager, _fileSystem, _conversationManager)
+            {
+                Verbose = verbose
+            };
 
             WriteLog("--- AI Autonomous Engineer PoC ---");
             if (verbose) WriteLog("[Mode] Verbose output enabled");

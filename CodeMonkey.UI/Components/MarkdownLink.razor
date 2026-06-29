@@ -1,0 +1,40 @@
+@using CodeMonkey.UI.Rendering.Models
+@using CodeMonkey.Core.Interfaces
+@inject IUserPreferences UserPreferences
+
+<a href="@ProcessedUrl" class="markdown-link" target="_blank">
+    @Link.Text
+</a>
+
+@code {
+    [Parameter] public MarkdownLinkElement Link { get; set; } = new();
+
+    private string ProcessedUrl => ProcessUrl(Link.Url);
+
+    private string ProcessUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url)) return "#";
+
+        // Check if it's an absolute URL
+        if (url.StartsWith("http://") || url.StartsWith("https://") || url.StartsWith("mailto:"))
+        {
+            return url;
+        }
+
+        // Check if it looks like a file path (relative or absolute)
+        // If it's a relative path or a path within the project root, convert to vscode://
+        if (!string.IsNullOrEmpty(UserPreferences.ProjectRoot))
+        {
+            string fullPath = System.IO.Path.IsPathRooted(url) 
+                ? url 
+                : System.IO.Path.Combine(UserPreferences.ProjectRoot, url);
+
+            if (System.IO.File.Exists(fullPath))
+            {
+                return $"vscode://file/{fullPath}";
+            }
+        }
+
+        return url;
+    }
+}

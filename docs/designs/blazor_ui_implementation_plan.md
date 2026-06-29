@@ -65,33 +65,33 @@ Professional-grade stability, security, and maintainability for the Developer Co
 *Note: All steps are defined as state-requirements. Re-running a step verifies that the state is still correct and applies fixes if it has drifted.*
 
 ### Phase 1: Infrastructure & Base Services
-- [ ] **1.1 Project Initialization**: Ensure the `CodeMonkey.UI` MAUI Blazor project exists and is correctly configured to reference `CodeMonkey.Core`. 
+- [x] **1.1 Project Initialization**: Ensure the `CodeMonkey.UI` MAUI Blazor project exists and is correctly configured to reference `CodeMonkey.Core`. 
     - **Subagent Task**: Scaffold the project structure and initial project file references.
-- [ ] **1.2 DI Container Configuration**: Ensure the DI container is configured with `IOrchestrator`, `IUserPreferences`, and `ISessionLedger` using singleton lifecycles.
-- [ ] **1.3 Git Integration**: Ensure `IGitService` is implemented and correctly detects the active branch with a fail-safe fallback.
+- [x] **1.2 DI Container Configuration**: Ensure the DI container is configured with `IOrchestrator`, `IUserPreferences`, and `ISessionLedger` using singleton lifecycles.
+- [x] **1.3 Git Integration**: Ensure `IGitService` is implemented and correctly detects the active branch with a fail-safe fallback.
     - **Subagent Task**: Implement the `IGitService` logic using `LibGit2Sharp` or CLI wrappers.
-- [ ] **1.4 Logging Pipeline**: Ensure `LogManager` is implemented to provide both a `ConcurrentQueue` for the UI and a persistent file stream for disk.
+- [x] **1.4 Logging Pipeline**: Ensure `LogManager` is implemented to provide both a `ConcurrentQueue` for the UI and a persistent file stream for disk.
 - **Verification & Testing**: 
     - Implement NUnit tests for `IGitService` and `LogManager`.
     - Use NSubstitute to mock filesystem access and Git repositories.
 
 ### Phase 2: Intent & Security Framework
-- [ ] **2.1 Filesystem Guard**: Ensure all path-based operations are normalized via `Path.GetFullPath()` and validated against the `ProjectRoot`.
+- [x] **2.1 Filesystem Guard**: Ensure all path-based operations are normalized via `Path.GetFullPath()` and validated against the `ProjectRoot`.
     - **Subagent Task**: Implement the `PathGuard` utility and comprehensive validation logic.
-- [ ] **2.2 Manifest Definitions**: Ensure `Manifest` data structures and the `IManifestService` are implemented to handle proposed agent actions.
-- [ ] **2.3 Confidence Gating Logic**: Ensure the tool-execution pipeline correctly routes requests based on the active `Trust Profile`.
-- [ ] **2.4 Audit Ledger**: Ensure `ISessionLedger` is implemented and consistently records every executed manifest.
+- [x] **2.2 Manifest Definitions**: Ensure `Manifest` data structures and the `IManifestService` are implemented to handle proposed agent actions.
+- [x] **2.3 Confidence Gating Logic**: Ensure the tool-execution pipeline correctly routes requests based on the active `Trust Profile`.
+- [x] **2.4 Audit Ledger**: Ensure `ISessionLedger` is implemented and consistently records every executed manifest.
     - **Subagent Task**: Implement the `ISessionLedger` persistence logic.
 - **Verification & Testing**: 
     - Extensive NUnit test suite for `PathGuard` (testing directory traversal attacks).
     - Use NSubstitute to verify that `IManifestService` triggers the correct gating logic based on `TrustProfile`.
 
 ### Phase 3: Rendering Engine
-- [ ] **3.1 AST Rendering Pipeline**: Ensure the `Markdig` $\rightarrow$ AST $\rightarrow$ Blazor Component mapping logic is implemented and tested.
+- [x] **3.1 AST Rendering Pipeline**: Ensure the `Markdig` $\rightarrow$ AST $\rightarrow$ Blazor Component mapping logic is implemented and tested.
     - **Subagent Task**: Implement the AST visitor and mapping logic.
-- [ ] **3.2 Markdown Components**: Ensure `MarkdownCodeBlock`, `MarkdownTable`, and `MarkdownLink` (with IDE integration) are implemented as native Blazor components.
+- [x] **3.2 Markdown Components**: Ensure `MarkdownCodeBlock`, `MarkdownTable`, and `MarkdownLink` (with IDE integration) are implemented as native Blazor components.
     - **Subagent Task**: Scaffold the individual `.razor` components for each Markdown element.
-- [ ] **3.3 Virtualized Log View**: Ensure the terminal log view is implemented using `<Virtualize>` to ensure O(1) rendering performance regardless of log size.
+- [x] **3.3 Virtualized Log View**: Ensure the terminal log view is implemented using `<Virtualize>` to ensure O(1) rendering performance regardless of log size.
 - **Verification & Testing**: 
     - Unit tests for the AST mapping logic (Input Markdown $\rightarrow$ Expected Component Type).
     - Component tests to ensure `MarkdownLink` correctly formats `vscode://` URIs.

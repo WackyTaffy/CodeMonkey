@@ -1,6 +1,8 @@
 using CodeMonkey.Core.Interfaces;
 using System.Text.Json;
 using CodeMonkey.Core.Models;
+using System;
+using System.Collections.Generic;
 
 namespace CodeMonkey.Core.Services
 {
@@ -8,12 +10,18 @@ namespace CodeMonkey.Core.Services
     {
         private readonly IFileSystem _fileSystem;
         private readonly IShell _shell;
+        private readonly IManifestService _manifestService;
+        private readonly IUserPreferences _userPreferences;
+        private readonly ISessionLedger _sessionLedger;
         private readonly JsonSerializerOptions _options;
 
-        public ToolManager(IFileSystem _fileSystem, IShell _shell)
+        public ToolManager(IFileSystem fileSystem, IShell shell, IManifestService manifestService, IUserPreferences userPreferences, ISessionLedger sessionLedger)
         {
-            this._fileSystem = _fileSystem;
-            this._shell = _shell;
+            this._fileSystem = fileSystem;
+            this._shell = shell;
+            this._manifestService = manifestService;
+            this._userPreferences = userPreferences;
+            this._sessionLedger = sessionLedger;
             this._options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -54,21 +62,81 @@ namespace CodeMonkey.Core.Services
                 }
             }
 
+            if (!IsToolSupported(name))
+            {
+                var unknownToolResult = $"Error: Tool {name} not found.";
+                _sessionLedger.RecordAction(name, false, $"Args: {argsJson} | Result: {unknownToolResult}");
+                return unknownToolResult;
+            }
+
+            // Confidence Gating Logic
+            var risk = GetRiskLevel(name);
+            var actionName = name == "run_command" ? "Shell: run_command" : name;
+            var description = GetToolDescription(name, argsJson);
+            
+            var manifest = _manifestService.CreateManifest(actionName, risk, description, argsJson);
+            
+            if (manifest == null || !_manifestService.RequestApproval(manifest, _userPreferences.ActiveProfile))
+            {
+                var manifestId = manifest?.Id.ToString() ?? "N/A";
+                return $"Action '{actionName}' requires manual approval. Manifest ID: {manifestId}";
+            }
+
+            string executionResult;
+            bool success;
             try
             {
-                return name switch
+                executionResult = name switch
                 {
                     "write_file" => ExecuteWriteFile(argsJson, workingDirectory),
                     "read_file" => ExecuteReadFile(argsJson, workingDirectory),
+                    "read_file_chunked" => ExecuteReadFileChunked(argsJson, workingDirectory),
                     "get_file_list" => ExecuteGetFileList(argsJson, workingDirectory),
                     "run_command" => ExecuteRunCommand(argsJson, workingDirectory),
-                    _ => $"Error: Tool {name} not found."
+                    _ => $"Error: Tool {name} not found." // Should not be reached due to IsToolSupported check
                 };
+                success = !executionResult.StartsWith("Error:");
             }
-            catch (Exception ex)
+            catch (Exception Exception)
             {
-                return $"Error executing tool {name}: {ex.Message}";
+                executionResult = $"Error executing tool {name}: {Exception.Message}";
+                success = false;
             }
+
+            _sessionLedger.RecordAction(actionName, success, $"Args: {argsJson} | Result: {executionResult}");
+
+            return executionResult;
+        }
+
+        private bool IsToolSupported(string name)
+        {
+            return name switch
+            {
+                "write_file" => true,
+                "read_file" => true,
+                "read_file_chunked" => true,
+                "get_file_list" => true,
+                "run_command" => true,
+                _ => false
+            };
+        }
+
+        private RiskLevel GetRiskLevel(string name)
+        {
+            return name switch
+            {
+                "read_file" => RiskLevel.Low,
+                "read_file_chunked" => RiskLevel.Low,
+                "get_file_list" => RiskLevel.Low,
+                "write_file" => RiskLevel.Medium,
+                "run_command" => RiskLevel.High,
+                _ => RiskLevel.High
+            };
+        }
+
+        private string GetToolDescription(string name, string argsJson)
+        {
+            return $"Executing tool {name} with arguments {argsJson};";
         }
 
         private string ExecuteWriteFile(string argsJson, string workingDirectory)
@@ -83,6 +151,13 @@ namespace CodeMonkey.Core.Services
             var args = ParseArguments<ReadFileArgs>(argsJson);
             if (args == null) throw new ArgumentException("Invalid arguments");
             return _fileSystem.ReadFile(args.Path, workingDirectory);
+        }
+
+        private string ExecuteReadFileChunked(string argsJson, string workingDirectory)
+        {
+            var args = ParseArguments<ReadFileChunkedArgs>(argsJson);
+            if (args == null) throw new ArgumentException("Invalid arguments");
+            return _fileSystem.ReadFileChunked(args.Path, args.StartLine, args.EndLine, workingDirectory);
         }
 
         private string ExecuteGetFileList(string argsJson, string workingDirectory)

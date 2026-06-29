@@ -1,0 +1,73 @@
+@using CodeMonkey.UI.Rendering.Models
+@using CodeMonkey.UI.Rendering.Services
+@using CodeMonkey.UI.Components
+@inject IMarkdownComponentRenderer MarkdownRenderer
+
+<div class="markdown-viewer">
+    @if (Elements == null)
+    {
+        <p>Loading...</p>
+    }
+    else
+    {
+        @foreach (var element in Elements)
+        {
+            @switch (element)
+            {
+                case MarkdownHeaderElement header:
+                    @if (header.Level == 1) { <h1>@header.Text</h1> }
+                    else if (header.Level == 2) { <h2>@header.Text</h2> }
+                    else if (header.Level == 3) { <h3>@header.Text</h3> }
+                    else if (header.Level == 4) { <h4>@header.Text</h4> }
+                    else if (header.Level == 5) { <h5>@header.Text</h5> }
+                    else { <h6>@header.Text</h6> }
+                    break;
+                case MarkdownTextElement text:
+                    <p>@text.Text</p>
+                    break;
+                case MarkdownCodeElement codeElem:
+                    <MarkdownCodeBlock Code="@codeElem.Code" Language="@codeElem.Language" />
+                    break;
+                case MarkdownListElement list:
+                    if (list.IsOrdered)
+                    {
+                        <ol>
+                            @foreach (var item in list.Items)
+                            {
+                                <li>@item</li>
+                            }
+                        </ol>
+                    }
+                    else
+                    {
+                        <ul>
+                            @foreach (var item in list.Items)
+                            {
+                                <li>@item</li>
+                            }
+                        </ul>
+                    }
+                    break;
+                case MarkdownLinkElement link:
+                    <MarkdownLink Link="@link" />
+                    break;
+                case MarkdownTableElement table:
+                    <MarkdownTable Table="@table" />
+                    break;
+                default:
+                    <span>Unknown element</span>
+                    break;
+            }
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string Content { get; set; } = string.Empty;
+    private IEnumerable<MarkdownElement> Elements { get; set; } = new List<MarkdownElement>();
+
+    protected override void OnParametersSet()
+    {
+        Elements = MarkdownRenderer.Render(Content);
+    }
+}
