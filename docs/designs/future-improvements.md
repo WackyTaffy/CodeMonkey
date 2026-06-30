@@ -23,3 +23,6 @@
 
 ## Stop generation
 - I want to be able to stop the current agent(s) and give a completely new prompt. Sometimes I can tell that the agent is going down the wrong path and I want a way to stop and redirect it without killing the entire session and losing conversation history
+
+## Workflow Scripts
+- I want to be able to have the LLM generate a deterministic workflow script like Claude Code CLI's workflow scripts

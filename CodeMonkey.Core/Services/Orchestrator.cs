@@ -5,6 +5,7 @@ using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using CodeMonkey.Core.Utility;
 
 namespace CodeMonkey.Core.Services
 {
@@ -14,18 +15,21 @@ namespace CodeMonkey.Core.Services
         private readonly IToolManager _toolManager;
         private readonly IFileSystem _fileSystem;
         private readonly IConversationManager _conversationManager;
+        private readonly IContextGuard _contextGuard;
         private const int TokenLimit = 12500;
         private const int TotalTokenLimit = 15000;
 
         public Action<string>? OnStatusUpdate { get; set; }
+        public Func<Guid, string, Task<bool>>? OnApprovalRequired { get; set; }
         public bool Verbose { get; set; }
 
-        public Orchestrator(ILLMClient llmClient, IToolManager toolManager, IFileSystem fileSystem, IConversationManager conversationManager)
+        public Orchestrator(ILLMClient llmClient, IToolManager toolManager, IFileSystem fileSystem, IConversationManager conversationManager, IContextGuard contextGuard)
         {
             _llmClient = llmClient;
             _toolManager = toolManager;
             _fileSystem = fileSystem;
             _conversationManager = conversationManager;
+            _contextGuard = contextGuard;
         }
 
         public string GetSystemPrompt(string workingDirectory)
@@ -128,6 +132,11 @@ You must evaluate the ""blast radius"" and context size before executing tasks. 
 
                 if (aiMessage?.ToolCalls != null && aiMessage.ToolCalls.Count > 0)
                 {
+                    if (!string.IsNullOrWhiteSpace(aiMessage.Content))
+                    {
+                        OnStatusUpdate?.Invoke($"[REASONING] {aiMessage.Content}");
+                    }
+
                     _conversationManager.AddMessage(aiMessage);
 
                     foreach (var toolCall in aiMessage.ToolCalls)
@@ -147,12 +156,14 @@ You must evaluate the ""blast radius"" and context size before executing tasks. 
                                 continue;
                             }
 
-                            string result = await HandleSubagentDispatchAsync(toolCall.Function.Arguments, workingDirectory);
+                            string rawResult = await HandleSubagentDispatchAsync(toolCall.Function.Arguments, workingDirectory);
+                            string result = _contextGuard.Guard(rawResult, ContextConstants.MaxToolOutputTokens);
                             _conversationManager.AddMessage(new Message("tool", result, toolCall.Id));
                         }
                         else
                         {
-                            string result = _toolManager.ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments, workingDirectory, permissions);
+                            string rawResult = _toolManager.ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments, workingDirectory, permissions);
+                            string result = _contextGuard.Guard(rawResult, ContextConstants.MaxToolOutputTokens);
                             _conversationManager.AddMessage(new Message("tool", result, toolCall.Id));
                         }
                     }
@@ -230,11 +241,17 @@ You must evaluate the ""blast radius"" and context size before executing tasks. 
                 var aiMessage = response.Choices[0].Message;
                 if (aiMessage?.ToolCalls != null && aiMessage.ToolCalls.Count > 0)
                 {
+                    if (!string.IsNullOrWhiteSpace(aiMessage.Content))
+                    {
+                        OnStatusUpdate?.Invoke($"[REASONING] {aiMessage.Content}");
+                    }
+
                     history.Add(aiMessage);
                     foreach (var toolCall in aiMessage.ToolCalls)
                     {
                         OnStatusUpdate?.Invoke($"[{agentName}] Calling tool: {toolCall.Function.Name}");
-                        string result = _toolManager.ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments, workingDirectory, permissions);
+                        string rawResult = _toolManager.ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments, workingDirectory, permissions);
+                        string result = _contextGuard.Guard(rawResult, ContextConstants.MaxToolOutputTokens);
                         history.Add(new Message("tool", result, toolCall.Id));
                     }
                 }

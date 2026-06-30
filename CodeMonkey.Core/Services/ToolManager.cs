@@ -52,6 +52,11 @@ namespace CodeMonkey.Core.Services
             }
         }
 
+        public void ApproveManifest(Guid id)
+        {
+            _manifestService.ApproveManifest(id);
+        }
+
         public string ExecuteTool(string name, string argsJson, string workingDirectory, List<string>? permissions = null)
         {
             if (permissions != null)
