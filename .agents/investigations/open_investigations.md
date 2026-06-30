@@ -5,6 +5,9 @@ The following bugs or behaviors have been noted by a user and require investigat
 	- Oversized files can also cause compaction-thrashing where the agent reads file -> hit's compaction trigger due to context size -> compacts (which loses the file content) -> must read file again to get the contents -> context overflow -> compaction -> cycle continues
 - **Logs:**
 	- `C:\Sourcecode\CodeMonkey\.agents\logs\6-28_file-list-tool-fail_2.log`
+	- Behavior seen in subagent -> `C:\Sourcecode\CodeMonkey\.agents\logs\6-29_overloading-subagents.log`
+	- Behavior caused by "dir" command -> `C:\Sourcecode\CodeMonkey\.agents\logs\6-29_dir-overload.log`
+- **Investigation Subdirectory:** `C:\Sourcecode\CodeMonkey\.agents\investigations\oversized-file-read`
 
 ## Self-Destructing Command Call
 - **Observed Behavior:** The agent is able to kill it's own process with `taskkill` using the `run_command` tool.
