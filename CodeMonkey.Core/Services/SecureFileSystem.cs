@@ -41,16 +41,58 @@ namespace CodeMonkey.Core.Services
             }
         }
 
-        public string ReadFileChunked(string path, int startLine, int endLine, string workingDirectory)
+        public string ReadFileRange(string path, int startLine, int endLine, string workingDirectory)
         {
             try
             {
                 string validatedPath = ValidatePath(path, workingDirectory);
-                return _inner.ReadFileChunked(validatedPath, startLine, endLine, "");
+                return _inner.ReadFileRange(validatedPath, startLine, endLine, "");
             }
             catch (Exception ex)
             {
-                _ledger.RecordAction($"ReadFileChunked: {path} (lines {startLine}-{endLine})", false, ex.Message);
+                _ledger.RecordAction($"ReadFileRange: {path} (lines {startLine}-{endLine})", false, ex.Message);
+                throw;
+            }
+        }
+
+        public string ReadFileHead(string path, int lineCount, string workingDirectory)
+        {
+            try
+            {
+                string validatedPath = ValidatePath(path, workingDirectory);
+                return _inner.ReadFileHead(validatedPath, lineCount, "");
+            }
+            catch (Exception ex)
+            {
+                _ledger.RecordAction($"ReadFileHead: {path} (lines {lineCount})", false, ex.Message);
+                throw;
+            }
+        }
+
+        public string ReadFileTail(string path, int lineCount, string workingDirectory)
+        {
+            try
+            {
+                string validatedPath = ValidatePath(path, workingDirectory);
+                return _inner.ReadFileTail(validatedPath, lineCount, "");
+            }
+            catch (Exception ex)
+            {
+                _ledger.RecordAction($"ReadFileTail: {path} (lines {lineCount})", false, ex.Message);
+                throw;
+            }
+        }
+
+        public string Grep(string pattern, string path, string workingDirectory)
+        {
+            try
+            {
+                string validatedPath = ValidatePath(path, workingDirectory);
+                return _inner.Grep(pattern, validatedPath, "");
+            }
+            catch (Exception ex)
+            {
+                _ledger.RecordAction($"Grep: {path} with pattern {pattern}", false, ex.Message);
                 throw;
             }
         }

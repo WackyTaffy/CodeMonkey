@@ -31,9 +31,11 @@ namespace CodeMonkey.Cli
             var manifestService = new ManifestService();
             var userPreferences = new UserPreferences();
             var sessionLedger = new SessionLedger();
-            var contextGuard = new ContextGuard();
+            
+            var tokenHelper = new GemmaTokenHelper();
+            var contextGuard = new ContextGuard(tokenHelper);
 
-            _toolManager = new ToolManager(_fileSystem, _shell, manifestService, userPreferences, sessionLedger);
+            _toolManager = new ToolManager(_fileSystem, _shell, manifestService, userPreferences, sessionLedger, tokenHelper);
             _conversationManager = new ConversationManager();
             _orchestrator = new Orchestrator(_llmClient, _toolManager, _fileSystem, _conversationManager, contextGuard)
             {

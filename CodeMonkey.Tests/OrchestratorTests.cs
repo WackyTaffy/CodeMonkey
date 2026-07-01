@@ -261,7 +261,7 @@ namespace CodeMonkey.Tests
 
             // Assert
             Assert.That(result, Is.EqualTo("I got the truncated output."));
-            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "tool" && m.Content == truncatedOutput && m.Id == "1"));
+            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "tool" && m.Content == truncatedOutput && m.ToolCallId == "1"));
         }
     }
 }

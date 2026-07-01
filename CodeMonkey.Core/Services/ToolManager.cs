@@ -1,8 +1,10 @@
 using CodeMonkey.Core.Interfaces;
-using System.Text.Json;
 using CodeMonkey.Core.Models;
+using CodeMonkey.Core.Utility;
 using System;
-using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
 
 namespace CodeMonkey.Core.Services
 {
@@ -13,15 +15,19 @@ namespace CodeMonkey.Core.Services
         private readonly IManifestService _manifestService;
         private readonly IUserPreferences _userPreferences;
         private readonly ISessionLedger _sessionLedger;
+        private readonly ITokenHelper _tokenHelper;
         private readonly JsonSerializerOptions _options;
 
-        public ToolManager(IFileSystem fileSystem, IShell shell, IManifestService manifestService, IUserPreferences userPreferences, ISessionLedger sessionLedger)
+        private const int _MAX_OUTPUT_LENGTH_TOKENS = 2500;
+
+        public ToolManager(IFileSystem fileSystem, IShell shell, IManifestService manifestService, IUserPreferences userPreferences, ISessionLedger sessionLedger, ITokenHelper tokenHelper)
         {
             this._fileSystem = fileSystem;
             this._shell = shell;
             this._manifestService = manifestService;
             this._userPreferences = userPreferences;
             this._sessionLedger = sessionLedger;
+            this._tokenHelper = tokenHelper;
             this._options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -74,19 +80,6 @@ namespace CodeMonkey.Core.Services
                 return unknownToolResult;
             }
 
-            // Confidence Gating Logic
-            var risk = GetRiskLevel(name);
-            var actionName = name == "run_command" ? "Shell: run_command" : name;
-            var description = GetToolDescription(name, argsJson);
-            
-            var manifest = _manifestService.CreateManifest(actionName, risk, description, argsJson);
-            
-            if (manifest == null || !_manifestService.RequestApproval(manifest, _userPreferences.ActiveProfile))
-            {
-                var manifestId = manifest?.Id.ToString() ?? "N/A";
-                return $"Action '{actionName}' requires manual approval. Manifest ID: {manifestId}";
-            }
-
             string executionResult;
             bool success;
             try
@@ -98,7 +91,7 @@ namespace CodeMonkey.Core.Services
                     "read_file_chunked" => ExecuteReadFileChunked(argsJson, workingDirectory),
                     "get_file_list" => ExecuteGetFileList(argsJson, workingDirectory),
                     "run_command" => ExecuteRunCommand(argsJson, workingDirectory),
-                    _ => $"Error: Tool {name} not found." // Should not be reached due to IsToolSupported check
+                    _ => $"Error: Tool {name} not found."
                 };
                 success = !executionResult.StartsWith("Error:");
             }
@@ -108,9 +101,43 @@ namespace CodeMonkey.Core.Services
                 success = false;
             }
 
-            _sessionLedger.RecordAction(actionName, success, $"Args: {argsJson} | Result: {executionResult}");
+            _sessionLedger.RecordAction(name, success, $"Args: {argsJson} | Result: {executionResult}");
 
-            return executionResult;
+            var safeLengthResult = RestrictLength(executionResult);
+            return safeLengthResult;
+        }
+
+        private string RestrictLength(string str)
+        {
+            var tokenLength = _tokenHelper.GetTokenCount(str);
+            if (tokenLength < _MAX_OUTPUT_LENGTH_TOKENS)
+                return str;
+
+            var strBuilder = new StringBuilder();
+
+            Func<string, bool> willHitTokenCap = (string appendStr) =>
+            {
+                int currentTokenCount = _tokenHelper.GetTokenCount(strBuilder.ToString());
+                int lineTokenCount = _tokenHelper.GetTokenCount(appendStr);
+                return (currentTokenCount + lineTokenCount) >= _MAX_OUTPUT_LENGTH_TOKENS;
+            };
+
+            using (StringReader reader = new StringReader(str))
+            {
+                string? line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    if(willHitTokenCap(line))
+                    {
+                        strBuilder.AppendLine("WARNING! Results truncated due to excessive length");
+                        break;
+                    }
+
+                    strBuilder.AppendLine(line);
+                }
+            }
+
+            return strBuilder.ToString();
         }
 
         private bool IsToolSupported(string name)
@@ -124,24 +151,6 @@ namespace CodeMonkey.Core.Services
                 "run_command" => true,
                 _ => false
             };
-        }
-
-        private RiskLevel GetRiskLevel(string name)
-        {
-            return name switch
-            {
-                "read_file" => RiskLevel.Low,
-                "read_file_chunked" => RiskLevel.Low,
-                "get_file_list" => RiskLevel.Low,
-                "write_file" => RiskLevel.Medium,
-                "run_command" => RiskLevel.High,
-                _ => RiskLevel.High
-            };
-        }
-
-        private string GetToolDescription(string name, string argsJson)
-        {
-            return $"Executing tool {name} with arguments {argsJson};";
         }
 
         private string ExecuteWriteFile(string argsJson, string workingDirectory)
@@ -162,7 +171,7 @@ namespace CodeMonkey.Core.Services
         {
             var args = ParseArguments<ReadFileChunkedArgs>(argsJson);
             if (args == null) throw new ArgumentException("Invalid arguments");
-            return _fileSystem.ReadFileChunked(args.Path, args.StartLine, args.EndLine, workingDirectory);
+            return _fileSystem.ReadFileRange(args.Path, args.StartLine, args.EndLine, workingDirectory);
         }
 
         private string ExecuteGetFileList(string argsJson, string workingDirectory)

@@ -16,6 +16,7 @@ namespace CodeMonkey.Tests
         private IManifestService _mockManifestService;
         private IUserPreferences _mockUserPreferences;
         private ISessionLedger _mockSessionLedger;
+        private ITokenHelper _mockTokenHelper;
         private ToolManager _toolManager;
         private const string WorkingDir = @"C:\temp";
 
@@ -27,7 +28,8 @@ namespace CodeMonkey.Tests
             _mockManifestService = Substitute.For<IManifestService>();
             _mockUserPreferences = Substitute.For<IUserPreferences>();
             _mockSessionLedger = Substitute.For<ISessionLedger>();
-            _toolManager = new ToolManager(_mockFileSystem, _mockShell, _mockManifestService, _mockUserPreferences, _mockSessionLedger);
+            _mockTokenHelper = Substitute.For<ITokenHelper>();
+            _toolManager = new ToolManager(_mockFileSystem, _mockShell, _mockManifestService, _mockUserPreferences, _mockSessionLedger, _mockTokenHelper);
         }
 
         [Test]
