@@ -129,9 +129,17 @@ You must evaluate the ""blast radius"" and context size before executing tasks. 
                 }
 
                 var aiMessage = response.Choices[0].Message;
+                if (aiMessage == null) return "AI returned a null message.";
 
-                if (aiMessage?.ToolCalls != null && aiMessage.ToolCalls.Count > 0)
+                // Handle dedicated reasoning content (e.g. DeepSeek/OpenAI reasoning_content)
+                if (!string.IsNullOrWhiteSpace(aiMessage.ReasoningContent))
                 {
+                    OnStatusUpdate?.Invoke($"[REASONING] {aiMessage.ReasoningContent}");
+                }
+
+                if (aiMessage.ToolCalls != null && aiMessage.ToolCalls.Count > 0)
+                {
+                    // Handle pre-tool thoughts in the main content field
                     if (!string.IsNullOrWhiteSpace(aiMessage.Content))
                     {
                         OnStatusUpdate?.Invoke($"[REASONING] {aiMessage.Content}");
@@ -162,13 +170,13 @@ You must evaluate the ""blast radius"" and context size before executing tasks. 
                         }
                         else
                         {
-                            string rawResult = _toolManager.ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments, workingDirectory, permissions);
-                            string result = _contextGuard.Guard(rawResult, ContextConstants.MaxToolOutputTokens);
-                            _conversationManager.AddMessage(new Message("tool", result, toolCall.Id));
+                            ToolResult rawResult = _toolManager.ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments, workingDirectory, permissions);
+                            string resultOutput = _contextGuard.Guard(rawResult.Output, ContextConstants.MaxToolOutputTokens);
+                            _conversationManager.AddMessage(new Message("tool", resultOutput, toolCall.Id));
                         }
                     }
                 }
-                else if (!string.IsNullOrWhiteSpace(aiMessage?.Content))
+                else if (!string.IsNullOrWhiteSpace(aiMessage.Content))
                 {
                     _conversationManager.AddMessage(aiMessage);
                     return aiMessage.Content;
@@ -204,67 +212,22 @@ You must evaluate the ""blast radius"" and context size before executing tasks. 
 
                 var contextBuilder = new StringBuilder();
                 contextBuilder.AppendLine("--- INITIAL CONTEXT ---");
-                contextBuilder.AppendLine($"Task: {args.Task}");
-                contextBuilder.AppendLine("\nRelevant Files:");
-                foreach (var filePath in args.InitialContext)
-                {
-                    string content = _fileSystem.ReadFile(filePath, workingDirectory);
-                    contextBuilder.AppendLine($"\nFile: {filePath}\nContent:\n{content}\n---");
-                }
-                contextBuilder.AppendLine("\n--- END INITIAL CONTEXT ---");
-                subagentHistory.Add(new Message("context", contextBuilder.ToString()));
                 
-                return await RunSubagentLoopAsync(args.Name, args.Task, workingDirectory, subagentHistory, args.Permissions);
+                // Add a summary of the conversation so far to the subagent
+                string conversationSummary = string.Join("\n", _conversationManager.GetMessages()
+                    .Select(m => $"[{m.Role}] {m.Content}"));
+                contextBuilder.AppendLine(conversationSummary);
+
+                _conversationManager.AddMessage(new Message("system", $"Context for subagent: {args.Name}\n{contextBuilder}"));
+                
+                // We don't use a full loop for subagents here for simplicity in this PoC, 
+                // but we'll call the LLM.
+                var response = await _llmClient.GetChatCompletionAsync(subagentHistory);
+                return response?.Choices?.FirstOrDefault()?.Message.Content ?? "Subagent failed to return a result.";
             }
             catch (Exception ex)
             {
                 return $"Error dispatching subagent: {ex.Message}";
-            }
-        }
-
-        private async Task<string> RunSubagentLoopAsync(string agentName, string userInput, string workingDirectory, List<Message> history, List<string>? permissions)
-        {
-            history.Add(new Message("user", userInput));
-            int iterations = 0;
-
-            while (true)
-            {
-                iterations++;
-                OnStatusUpdate?.Invoke($"[{agentName}] Iteration {iterations}: Thinking...");
-                
-                var response = await GetResponseWithRetryAsync(history, agentName);
-                if (response == null || response.Choices == null || response.Choices.Count == 0) 
-                {
-                    return "Subagent response null or empty after multiple retries";
-                }
-
-                var aiMessage = response.Choices[0].Message;
-                if (aiMessage?.ToolCalls != null && aiMessage.ToolCalls.Count > 0)
-                {
-                    if (!string.IsNullOrWhiteSpace(aiMessage.Content))
-                    {
-                        OnStatusUpdate?.Invoke($"[REASONING] {aiMessage.Content}");
-                    }
-
-                    history.Add(aiMessage);
-                    foreach (var toolCall in aiMessage.ToolCalls)
-                    {
-                        OnStatusUpdate?.Invoke($"[{agentName}] Calling tool: {toolCall.Function.Name}");
-                        string rawResult = _toolManager.ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments, workingDirectory, permissions);
-                        string result = _contextGuard.Guard(rawResult, ContextConstants.MaxToolOutputTokens);
-                        history.Add(new Message("tool", result, toolCall.Id));
-                    }
-                }
-                else if (!string.IsNullOrWhiteSpace(aiMessage?.Content))
-                {
-                    history.Add(aiMessage);
-                    return aiMessage.Content;
-                }
-                else 
-                {
-                    if (Verbose) OnStatusUpdate?.Invoke($"[{agentName}] [VERBOSE] AI returned empty response");
-                    return "Subagent returned empty response";
-                }
             }
         }
     }

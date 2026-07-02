@@ -55,7 +55,7 @@ namespace CodeMonkey.Cli
             {
                 if (status.StartsWith("[REASONING]"))
                 {
-                    WriteReasoning(status.Replace("[REASONING] ", ""));
+                    WriteReasoning(status.Replace("[REASONING]", ""));
                 }
                 else
                 {

@@ -50,7 +50,7 @@ namespace CodeMonkey.Tests
             var result = _toolManager.ExecuteTool(tool, args, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("content"));
+            Assert.That(result.Output, Is.EqualTo("content"));
             _mockManifestService.Received(1).RequestApproval(Arg.Any<Manifest>(), TrustProfile.Strict);
         }
 
@@ -92,7 +92,7 @@ namespace CodeMonkey.Tests
             var result = _toolManager.ExecuteTool(tool, args, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("Success"));
+            Assert.That(result.Output, Is.EqualTo("Success"));
         }
 
         [Test]
@@ -133,7 +133,7 @@ namespace CodeMonkey.Tests
             var result = _toolManager.ExecuteTool(tool, args, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("listing"));
+            Assert.That(result.Output, Is.EqualTo("listing"));
         }
 
         [Test]

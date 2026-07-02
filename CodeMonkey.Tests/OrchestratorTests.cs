@@ -140,7 +140,7 @@ namespace CodeMonkey.Tests
                           );
 
             _mockToolManager.ExecuteTool("get_file_list", "{\"recursive\": \"false\"}", WorkingDir, null)
-                           .Returns("a.txt\nb.txt");
+                           .Returns(ToolResult.Success("a.txt\nb.txt"));
 
             // Act
             var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir);
@@ -251,7 +251,7 @@ namespace CodeMonkey.Tests
             string truncatedOutput = "Truncated version of " + oversizedOutput.Substring(0, 10) + "... [TRUNCATED]";
             
             _mockToolManager.ExecuteTool("get_large_output", "{}", WorkingDir, null)
-                           .Returns(oversizedOutput);
+                           .Returns(ToolResult.Success(oversizedOutput));
             
             _mockContextGuard.Guard(oversizedOutput, ContextConstants.MaxToolOutputTokens)
                            .Returns(truncatedOutput);

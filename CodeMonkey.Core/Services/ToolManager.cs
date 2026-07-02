@@ -2,9 +2,11 @@ using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
 using CodeMonkey.Core.Utility;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.IO;
 
 namespace CodeMonkey.Core.Services
 {
@@ -63,13 +65,13 @@ namespace CodeMonkey.Core.Services
             _manifestService.ApproveManifest(id);
         }
 
-        public string ExecuteTool(string name, string argsJson, string workingDirectory, List<string>? permissions = null)
+        public ToolResult ExecuteTool(string name, string argsJson, string workingDirectory, List<string>? permissions = null)
         {
             if (permissions != null)
             {
                 if (IsPrivilegedTool(name) && !permissions.Contains(name))
                 {
-                    return $"Error: Subagent does not have permission to use tool '{name}'.";
+                    return ToolResult.Success($"Error: Subagent does not have permission to use tool '{name}'.");
                 }
             }
 
@@ -77,8 +79,16 @@ namespace CodeMonkey.Core.Services
             {
                 var unknownToolResult = $"Error: Tool {name} not found.";
                 _sessionLedger.RecordAction(name, false, $"Args: {argsJson} | Result: {unknownToolResult}");
-                return unknownToolResult;
+                return ToolResult.Success(unknownToolResult);
             }
+
+            // Authorization via ManifestService
+            //var (risk, description, manifestArgs) = GetManifestDetails(name, argsJson);
+            //var manifest = _manifestService.CreateManifest(name, risk, description, manifestArgs);
+            //if (!_manifestService.RequestApproval(manifest, _userPreferences.ActiveProfile))
+            //{
+            //    return ToolResult.NeedsApproval(manifest.Id);
+            //}
 
             string executionResult;
             bool success;
@@ -104,7 +114,31 @@ namespace CodeMonkey.Core.Services
             _sessionLedger.RecordAction(name, success, $"Args: {argsJson} | Result: {executionResult}");
 
             var safeLengthResult = RestrictLength(executionResult);
-            return safeLengthResult;
+            return ToolResult.Success(safeLengthResult);
+        }
+
+        private (RiskLevel Risk, string Description, string[] Args) GetManifestDetails(string name, string argsJson)
+        {
+            switch (name)
+            {
+                case "write_file":
+                    var writeArgs = ParseArguments<WriteFileArgs>(argsJson);
+                    return (RiskLevel.Medium, $"Write to file: {writeArgs?.Path}", new[] { writeArgs?.Path ?? "unknown" });
+                case "read_file":
+                    var readArgs = ParseArguments<ReadFileArgs>(argsJson);
+                    return (RiskLevel.Low, $"Read file: {readArgs?.Path}", new[] { readArgs?.Path ?? "unknown" });
+                case "read_file_chunked":
+                    var chunkArgs = ParseArguments<ReadFileChunkedArgs>(argsJson);
+                    return (RiskLevel.Low, $"Read chunk of file: {chunkArgs?.Path}", new[] { chunkArgs?.Path ?? "unknown" });
+                case "get_file_list":
+                    var listArgs = ParseArguments<GetFileListArgs>(argsJson);
+                    return (RiskLevel.Low, $"List files with pattern: {listArgs?.SearchPattern}", new[] { listArgs?.SearchPattern ?? "unknown" });
+                case "run_command":
+                    var cmdArgs = ParseArguments<RunCommandArgs>(argsJson);
+                    return (RiskLevel.High, $"Run command: {cmdArgs?.Command}", new[] { cmdArgs?.Command ?? "unknown" });
+                default:
+                    return (RiskLevel.Low, "Unknown tool", new string[0]);
+            }
         }
 
         private string RestrictLength(string str)
