@@ -34,7 +34,17 @@ namespace CodeMonkey.Cli
 
             _toolManager = new ToolManager(_fileSystem, _shell, manifestService, userPreferences, sessionLedger);
             _conversationManager = new ConversationManager();
-            _orchestrator = new Orchestrator(_llmClient, _toolManager, _fileSystem, _conversationManager)
+
+            // Modular Services DI
+            var promptProvider = new PromptProvider();
+            var subagentManager = new SubagentManager(promptProvider, _fileSystem, _toolManager);
+            var toolDispatcher = new ToolDispatcher(_toolManager, subagentManager);
+            var agentExecutor = new AgentExecutor(_llmClient, toolDispatcher, _conversationManager);
+            
+            // Break circular dependency
+            subagentManager.SetExecutor(agentExecutor);
+
+            _orchestrator = new Orchestrator(agentExecutor, promptProvider, _fileSystem, _conversationManager)
             {
                 Verbose = verbose
             };
@@ -45,7 +55,8 @@ namespace CodeMonkey.Cli
 
             _orchestrator.BootstrapContext(WorkingDirectory);
 
-            WriteLog($"\nSYSTEM PROMPT: {_orchestrator.GetSystemPrompt(WorkingDirectory)}\n");
+            // Note: GetSystemPrompt moved to promptProvider, but we can still get it via promptProvider
+            WriteLog($"\nSYSTEM PROMPT: {promptProvider.GetSystemPrompt(WorkingDirectory)}\n");
 
             // Subscribe to orchestrator status updates
             _orchestrator.OnStatusUpdate = (status) => 
