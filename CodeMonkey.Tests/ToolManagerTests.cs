@@ -2,6 +2,7 @@ using NSubstitute;
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Services;
 using System;
+using CodeMonkey.Core.Models;
 
 namespace CodeMonkey.Tests
 {
@@ -44,7 +45,8 @@ namespace CodeMonkey.Tests
             var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("File written successfully"));
+            Assert.That(result.Success, Is.True);
+            Assert.That(result.Result, Is.EqualTo("File written successfully"));
             _mockFileSystem.Received(1).WriteFile("test.txt", "hello world", WorkingDir);
             _mockSessionLedger.Received(1).RecordAction(Arg.Any<string>(), true, Arg.Any<string>());
         }
@@ -65,7 +67,8 @@ namespace CodeMonkey.Tests
             var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("file content"));
+            Assert.That(result.Success, Is.True);
+            Assert.That(result.Result, Is.EqualTo("file content"));
             _mockFileSystem.Received(1).ReadFile("test.txt", WorkingDir);
             _mockSessionLedger.Received(1).RecordAction(Arg.Any<string>(), true, Arg.Any<string>());
         }
@@ -86,7 +89,8 @@ namespace CodeMonkey.Tests
             var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("directory listing"));
+            Assert.That(result.Success, Is.True);
+            Assert.That(result.Result, Is.EqualTo("directory listing"));
             _mockShell.Received(1).RunCommand("dir", WorkingDir);
             _mockSessionLedger.Received(1).RecordAction(Arg.Any<string>(), true, Arg.Any<string>());
         }
@@ -99,10 +103,11 @@ namespace CodeMonkey.Tests
             string argsJson = "{}";
 
             // Act
-            var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
+            ToolResult result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("Error: Tool invalid_tool not found."));
+            Assert.That(result.Success, Is.False);
+            Assert.That(result.Result, Is.EqualTo("Error: Tool invalid_tool not found."));
             _mockSessionLedger.Received(1).RecordAction(Arg.Any<string>(), false, Arg.Any<string>());
         }
 
@@ -118,10 +123,11 @@ namespace CodeMonkey.Tests
             _mockManifestService.RequestApproval(manifest, Arg.Any<CodeMonkey.Core.Models.TrustProfile>()).Returns(true);
 
             // Act
-            var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
+            ToolResult result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
 
             // Assert
-            Assert.That(result, Does.StartWith("Error executing tool read_file:"));
+            Assert.That(result.Success, Is.False);
+            Assert.That(result.Result, Does.StartWith("Error executing tool read_file:"));
             _mockSessionLedger.Received(1).RecordAction(Arg.Any<string>(), false, Arg.Any<string>());
         }
 
@@ -142,7 +148,8 @@ namespace CodeMonkey.Tests
             var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("Error executing tool read_file: Disk error"));
+            Assert.That(result.Success, Is.False);
+            Assert.That(result.Result, Is.EqualTo("Error executing tool read_file: Disk error"));
             _mockSessionLedger.Received(1).RecordAction(Arg.Any<string>(), false, Arg.Any<string>());
         }
     }

@@ -136,7 +136,7 @@ namespace CodeMonkey.Tests
                           );
 
             _mockToolManager.ExecuteTool("get_file_list", "{\"recursive\": \"false\"}", WorkingDir, null)
-                           .Returns("a.txt\nb.txt");
+                           .Returns(new ToolResult { Result = "a.txt\nb.txt", Success = true });
 
             // Act
             var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir);

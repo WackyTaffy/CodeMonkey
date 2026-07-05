@@ -18,6 +18,7 @@ namespace CodeMonkey.Core.Services
         private const int TotalTokenLimit = 15000;
 
         public Action<string>? OnStatusUpdate { get; set; }
+        public Action<ToolResult>? OnToolExecuted { get; set; }
         public bool Verbose { get; set; }
 
         public Orchestrator(ILLMClient llmClient, IToolManager toolManager, IFileSystem fileSystem, IConversationManager conversationManager)
@@ -47,7 +48,25 @@ You must evaluate the ""blast radius"" and context size before executing tasks. 
 ### 3. CONTEXT BUDGETING & PROGRESSIVE DISCLOSURE
 - You operate under a strict {TotalTokenLimit} token context limit. You are forbidden from loading entire directories or performing recursive file searches that inclue `bin` and `obj` directories.
 - PULL-ON-DEMAND: Treat 'INDEX.md', 'CONTEXT-MAP.md', and 'AGENTS.md' as shallow maps. Read them first for 1 session turn to identify which file or '.agents/' sub-directory contains the details you need.
+
+### 4. PRAGMATISM & SCOPE CONTROL
+- SURGICAL FIRST: Prioritize small, targeted fixes over large architectural changes.
+- AVOID SCOPE CREEP: Do not suggest 'improvements' or 'refactoring' unless explicitly asked or necessary for the fix.
+- MINIMALISM: Write the least amount of code necessary to solve the problem.
 ";
+        }
+
+        public string GetSubagentSystemPrompt(string name, string task, string workingDirectory)
+        {
+            return $@"You are a specialized worker agent named '{name}'. Your sole purpose is to execute the following task: {task}.
+You are working in '{workingDirectory}'.
+
+### BEHAVIORAL CONSTRAINTS
+- NO PROPOSALS: Do not propose plans or ask for human approval.
+- NO CHECKPOINTS: Do not stop for human checkpoints.
+- NO ORCHESTRATION: You are a worker, not an orchestrator. Do not dispatch further agents or manage a multi-stage project.
+- ATOMICITY: Execute your task to completion and return the final result.
+- CONCISE OUTPUT: Provide the result of your work clearly and concisely.";
         }
 
         public void BootstrapContext(string workingDirectory)
@@ -69,7 +88,8 @@ You must evaluate the ""blast radius"" and context size before executing tasks. 
 
         public async Task<string> ProcessUserRequestAsync(string userInput, string workingDirectory)
         {
-            return await RunAgentLoopAsync(userInput, workingDirectory, null);
+            _conversationManager.AddMessage(new Message("user", userInput));
+            return await ExecuteAgentLoopAsync("Main Agent", _conversationManager, workingDirectory, null);
         }
 
         private async Task<ChatResponse?> GetResponseWithRetryAsync(List<Message> messages, string agentLabel, int maxRetries = 3)
@@ -98,79 +118,101 @@ You must evaluate the ""blast radius"" and context size before executing tasks. 
             return null;
         }
 
-        private async Task<string> RunAgentLoopAsync(string userInput, string workingDirectory, List<string>? permissions)
+        private async Task<string> ExecuteAgentLoopAsync(string agentLabel, IConversationManager? conversationManager, string workingDirectory, List<string>? permissions)
         {
-            _conversationManager.AddMessage(new Message("user", userInput));
-
             int iterations = 0;
+
+            if(conversationManager == null)
+            {
+                conversationManager = new ConversationManager();
+            }
 
             while (true)
             {
                 iterations++;
-                OnStatusUpdate?.Invoke($"[Main Agent] Iteration {iterations}: Thinking...");
+                OnStatusUpdate?.Invoke($"[{agentLabel}] Iteration {iterations}: Thinking...");
                 
+                List<Message> currentMessages = conversationManager!.GetMessages().ToList();
+
                 if (Verbose)
                 {
-                    int currentTokens = _conversationManager.GetTotalTokenCount();
-                    OnStatusUpdate?.Invoke($"[Main Agent] [VERBOSE] Current Context Window: {currentTokens} tokens");
-                    OnStatusUpdate?.Invoke($"[Main Agent] [VERBOSE] Message count: {_conversationManager.GetMessages().Count()}");
+                    int currentTokens = conversationManager!.GetTotalTokenCount();
+                    OnStatusUpdate?.Invoke($"[{agentLabel}] [VERBOSE] Current Context Window: {currentTokens} tokens");
+                    OnStatusUpdate?.Invoke($"[{agentLabel}] [VERBOSE] Message count: {currentMessages.Count}");
                 }
 
-                var messages = _conversationManager.GetMessages().ToList();
-                var response = await GetResponseWithRetryAsync(messages, "Main Agent");
+                var response = await GetResponseWithRetryAsync(currentMessages, agentLabel);
 
                 if (response == null || response.Choices == null || response.Choices.Count == 0)
                 {
-                    return "AI Response was null or contained no Choices after multiple retries.";
+                    return $"AI Response was null or contained no Choices after multiple retries for {agentLabel}.";
                 }
 
                 var aiMessage = response.Choices[0].Message;
 
+                // Output reasoning content if present
+                if (!string.IsNullOrWhiteSpace(aiMessage?.ReasoningContent))
+                {
+                    OnStatusUpdate?.Invoke($"[{agentLabel}] REASONING: {aiMessage.ReasoningContent}");
+                }
+
                 if (aiMessage?.ToolCalls != null && aiMessage.ToolCalls.Count > 0)
                 {
-                    _conversationManager.AddMessage(aiMessage);
+                    // If there is content AND tool calls, the content is likely thinking/reasoning
+                    if (!string.IsNullOrWhiteSpace(aiMessage.Content))
+                    {
+                        OnStatusUpdate?.Invoke($"[{agentLabel}] THINKING: {aiMessage.Content}");
+                    }
+
+                    conversationManager!.AddMessage(aiMessage);
 
                     foreach (var toolCall in aiMessage.ToolCalls)
                     {
-                        if (_conversationManager.ShouldCompact(TokenLimit))
+                        if (conversationManager!.ShouldCompact(TokenLimit))
                         {
-                            OnStatusUpdate?.Invoke($"[Main Agent] Context limit reached ({_conversationManager.GetTotalTokenCount()}/{TokenLimit}). Compacting context...");
+                            OnStatusUpdate?.Invoke($"[{agentLabel}] Context limit reached ({conversationManager.GetTotalTokenCount()}/{TokenLimit}). Compacting context...");
                             await CompactContextAsync(workingDirectory);
                         }
 
-                        OnStatusUpdate?.Invoke($"[Main Agent] Calling tool: {toolCall.Function.Name} with args: {toolCall.Function.Arguments}");
+                        OnStatusUpdate?.Invoke($"[{agentLabel}] Calling tool: {toolCall.Function.Name} with args: {toolCall.Function.Arguments}");
+                        
                         if (toolCall.Function.Name == "dispatch_subagent")
                         {
                             if (permissions != null)
                             {
-                                _conversationManager.AddMessage(new Message("tool", "Error: Subagents cannot dispatch further subagents.", toolCall.Id));
+                                var errMsg = "Error: Subagents cannot dispatch further subagents.";
+                                conversationManager!.AddMessage(new Message("tool", errMsg, toolCall.Id));
                                 continue;
                             }
 
                             string result = await HandleSubagentDispatchAsync(toolCall.Function.Arguments, workingDirectory);
-                            _conversationManager.AddMessage(new Message("tool", result, toolCall.Id));
+                            conversationManager!.AddMessage(new Message("tool", result, toolCall.Id));
                         }
                         else
                         {
-                            string result = _toolManager.ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments, workingDirectory, permissions);
-                            _conversationManager.AddMessage(new Message("tool", result, toolCall.Id));
+                            ToolResult toolResult = _toolManager.ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments, workingDirectory, permissions);
+                            
+                            // Trigger event for UI transparency
+                            OnToolExecuted?.Invoke(toolResult);
+                            
+                            conversationManager!.AddMessage(new Message("tool", toolResult.Result, toolCall.Id));
                         }
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(aiMessage?.Content))
                 {
-                    _conversationManager.AddMessage(aiMessage);
+                    conversationManager!.AddMessage(aiMessage);
                     return aiMessage.Content;
                 }
                 else
                 {
-                    if (Verbose) OnStatusUpdate?.Invoke("[Main Agent] [VERBOSE] AI returned an empty response with no tool calls");
-                    return "AI returned an empty response.";
+                    if (Verbose) OnStatusUpdate?.Invoke($"[{agentLabel}] [VERBOSE] AI returned an empty response with no tool calls");
+                    return $"AI returned an empty response for {agentLabel}.";
                 }
 
-                if (_conversationManager.ShouldCompact(TokenLimit))
+                if (conversationManager!.ShouldCompact(TokenLimit))
                 {
-                    OnStatusUpdate?.Invoke($"[Main Agent] Context limit reached ({_conversationManager.GetTotalTokenCount()}/{TokenLimit}). Compacting context...");
+                    OnStatusUpdate?.Invoke($"[{agentLabel}] Context limit reached ({conversationManager.GetTotalTokenCount()}/{TokenLimit}). Compacting context...");
                     await CompactContextAsync(workingDirectory);
                 }
             }
@@ -185,11 +227,9 @@ You must evaluate the ""blast radius"" and context size before executing tasks. 
 
                 OnStatusUpdate?.Invoke($"[Main Agent] Dispatching subagent '{args.Name}' for task: {args.Task}");
 
-                List<Message> subagentHistory = new List<Message>();
-                string subagentSysPrompt = $"You are a specialized subagent named '{args.Name}'. Your goal is: {args.Task}. " +
-                                          $"You are working in '{workingDirectory}'. " +
-                                          $"Return only the final result of your task.";
-                subagentHistory.Add(new Message("system", subagentSysPrompt));
+                var subagentConvoMgr = new ConversationManager();
+                string subagentSysPrompt = GetSubagentSystemPrompt(args.Name, args.Task, workingDirectory);
+                subagentConvoMgr.AddMessage(new Message("system", subagentSysPrompt));
 
                 var contextBuilder = new StringBuilder();
                 contextBuilder.AppendLine("--- INITIAL CONTEXT ---");
@@ -201,53 +241,15 @@ You must evaluate the ""blast radius"" and context size before executing tasks. 
                     contextBuilder.AppendLine($"\nFile: {filePath}\nContent:\n{content}\n---");
                 }
                 contextBuilder.AppendLine("\n--- END INITIAL CONTEXT ---");
-                subagentHistory.Add(new Message("context", contextBuilder.ToString()));
-                
-                return await RunSubagentLoopAsync(args.Name, args.Task, workingDirectory, subagentHistory, args.Permissions);
+                subagentConvoMgr.AddMessage(new Message("context", contextBuilder.ToString()));
+
+                subagentConvoMgr.AddMessage(new Message("user", args.Task));
+
+                return await ExecuteAgentLoopAsync("Subagent: " + args.Name, subagentConvoMgr, workingDirectory, args.Permissions);
             }
             catch (Exception ex)
             {
                 return $"Error dispatching subagent: {ex.Message}";
-            }
-        }
-
-        private async Task<string> RunSubagentLoopAsync(string agentName, string userInput, string workingDirectory, List<Message> history, List<string>? permissions)
-        {
-            history.Add(new Message("user", userInput));
-            int iterations = 0;
-
-            while (true)
-            {
-                iterations++;
-                OnStatusUpdate?.Invoke($"[{agentName}] Iteration {iterations}: Thinking...");
-                
-                var response = await GetResponseWithRetryAsync(history, agentName);
-                if (response == null || response.Choices == null || response.Choices.Count == 0) 
-                {
-                    return "Subagent response null or empty after multiple retries";
-                }
-
-                var aiMessage = response.Choices[0].Message;
-                if (aiMessage?.ToolCalls != null && aiMessage.ToolCalls.Count > 0)
-                {
-                    history.Add(aiMessage);
-                    foreach (var toolCall in aiMessage.ToolCalls)
-                    {
-                        OnStatusUpdate?.Invoke($"[{agentName}] Calling tool: {toolCall.Function.Name}");
-                        string result = _toolManager.ExecuteTool(toolCall.Function.Name, toolCall.Function.Arguments, workingDirectory, permissions);
-                        history.Add(new Message("tool", result, toolCall.Id));
-                    }
-                }
-                else if (!string.IsNullOrWhiteSpace(aiMessage?.Content))
-                {
-                    history.Add(aiMessage);
-                    return aiMessage.Content;
-                }
-                else 
-                {
-                    if (Verbose) OnStatusUpdate?.Invoke($"[{agentName}] [VERBOSE] AI returned empty response");
-                    return "Subagent returned empty response";
-                }
             }
         }
     }

@@ -17,24 +17,26 @@ namespace CodeMonkey.Core.Services
             _messages.Add(message);
         }
 
-        public int GetTotalTokenCount()
+        public int GetTotalTokenCount() => GetTotalTokenCount(_tokenHelper, _messages);
+
+        public static int GetTotalTokenCount(GemmaTokenHelper tokenHelper, List<Message> messages)
         {
             int totalTokens = 0;
-            foreach (var msg in _messages)
+            foreach (var msg in messages)
             {
-                totalTokens += _tokenHelper.GetTokenCount(msg.Role);
-                totalTokens += _tokenHelper.GetTokenCount(msg.Content ?? "");
+                totalTokens += tokenHelper.GetTokenCount(msg.Role);
+                totalTokens += tokenHelper.GetTokenCount(msg.Content ?? "");
                 if (msg.ToolCalls != null)
                 {
                     foreach (var call in msg.ToolCalls)
                     {
-                        totalTokens += _tokenHelper.GetTokenCount(call.Function.Name);
-                        totalTokens += _tokenHelper.GetTokenCount(call.Function.Arguments);
+                        totalTokens += tokenHelper.GetTokenCount(call.Function.Name);
+                        totalTokens += tokenHelper.GetTokenCount(call.Function.Arguments);
                     }
                 }
                 if (!string.IsNullOrEmpty(msg.ToolCallId))
                 {
-                    totalTokens += _tokenHelper.GetTokenCount(msg.ToolCallId);
+                    totalTokens += tokenHelper.GetTokenCount(msg.ToolCallId);
                 }
             }
             return totalTokens;
