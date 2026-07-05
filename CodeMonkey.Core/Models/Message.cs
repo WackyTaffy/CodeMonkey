@@ -15,6 +15,11 @@ namespace CodeMonkey.Core.Models
         [YamlMember(Alias = "content")]
         public string? Content { get; set; }
 
+        [JsonPropertyName("reasoning_content")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [YamlMember(Alias = "reasoning_content")]
+        public string? ReasoningContent { get; set; }
+
         [JsonPropertyName("tool_call_id")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         [YamlMember(Alias = "tool_call_id")]
@@ -43,6 +48,6 @@ namespace CodeMonkey.Core.Models
 
         public Message() { }
 
-        public override string ToString() => $"[{Role}] {ToolCalls?.Count ?? 0} Tool Calls, Content Length = {Content?.Length ?? 0}";
+        public override string ToString() => $"[{Role}] {ToolCalls?.Count ?? 0} Tool Calls, Content Length = {Content?.Length ?? 0}, Reasoning Length = {ReasoningContent?.Length ?? 0}";
     }
 }

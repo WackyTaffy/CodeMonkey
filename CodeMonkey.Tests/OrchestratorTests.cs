@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using System.Linq;
+using CodeMonkey.Core.Utility;
 
 namespace CodeMonkey.Tests
 {
@@ -16,6 +17,7 @@ namespace CodeMonkey.Tests
         private IToolManager _mockToolManager;
         private IFileSystem _mockFileSystem;
         private IConversationManager _mockConversationManager;
+        private IContextGuard _mockContextGuard;
         private Orchestrator _orchestrator;
         private const string WorkingDir = @"C:\temp";
 
@@ -26,7 +28,8 @@ namespace CodeMonkey.Tests
             _mockToolManager = Substitute.For<IToolManager>();
             _mockFileSystem = Substitute.For<IFileSystem>();
             _mockConversationManager = Substitute.For<IConversationManager>();
-            _orchestrator = new Orchestrator(_mockLlmClient, _mockToolManager, _mockFileSystem, _mockConversationManager);
+            _mockContextGuard = Substitute.For<IContextGuard>();
+            _orchestrator = new Orchestrator(_mockLlmClient, _mockToolManager, _mockFileSystem, _mockConversationManager, _mockContextGuard);
         }
 
         [Test]
@@ -55,6 +58,7 @@ namespace CodeMonkey.Tests
             // Assert
             _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "system"));
             _mockConversationManager.DidNotReceive().AddMessage(Arg.Is<Message>(m => m.Role == "context"));
+            
         }
 
         [Test]
@@ -136,7 +140,7 @@ namespace CodeMonkey.Tests
                           );
 
             _mockToolManager.ExecuteTool("get_file_list", "{\"recursive\": \"false\"}", WorkingDir, null)
-                           .Returns("a.txt\nb.txt");
+                           .Returns(ToolResult.Success("a.txt\nb.txt"));
 
             // Act
             var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir);
@@ -169,7 +173,7 @@ namespace CodeMonkey.Tests
                 }
             };
 
-            // 2. Subagent provides a result (simulated via LLM client call for subagent loop)
+            // 2. Subagent provides a result
             var response2 = new ChatResponse
             {
                 Choices = new List<Choice>
@@ -206,6 +210,58 @@ namespace CodeMonkey.Tests
 
             // Assert
             Assert.That(result, Is.EqualTo("The subagent found 2 errors, I will now fix them"));
+        }
+
+        [Test]
+        public async Task ProcessUserRequestAsync_ToolOutputTooLarge_TruncatesAndAddsToConversation()
+        {
+            // Arrange
+            string userInput = "Get large output";
+            var messages = new List<Message> { new Message("user", userInput) };
+            _mockConversationManager.GetMessages().Returns(messages);
+            
+            var response1 = new ChatResponse
+            {
+                Choices = new List<Choice>
+                {
+                    new Choice 
+                    { 
+                        Message = new Message("assistant", null, new List<ToolCall> 
+                        { 
+                            new ToolCall { Id = "1", Function = new FunctionCall { Name = "get_large_output", Arguments = "{}" } } 
+                        }) 
+                    }
+                }
+            };
+            var response2 = new ChatResponse
+            {
+                Choices = new List<Choice>
+                {
+                    new Choice { Message = new Message("assistant", "I got the truncated output.") }
+                }
+            };
+
+            _mockLlmClient.GetChatCompletionAsync(Arg.Any<List<Message>>())
+                          .Returns(
+                              Task.FromResult(response1),
+                              Task.FromResult(response2)
+                          );
+
+            string oversizedOutput = new string('A', 20000);
+            string truncatedOutput = "Truncated version of " + oversizedOutput.Substring(0, 10) + "... [TRUNCATED]";
+            
+            _mockToolManager.ExecuteTool("get_large_output", "{}", WorkingDir, null)
+                           .Returns(ToolResult.Success(oversizedOutput));
+            
+            _mockContextGuard.Guard(oversizedOutput, ContextConstants.MaxToolOutputTokens)
+                           .Returns(truncatedOutput);
+
+            // Act
+            var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir);
+
+            // Assert
+            Assert.That(result, Is.EqualTo("I got the truncated output."));
+            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "tool" && m.Content == truncatedOutput && m.ToolCallId == "1"));
         }
     }
 }

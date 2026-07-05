@@ -16,6 +16,7 @@ namespace CodeMonkey.Tests
         private IManifestService _mockManifestService;
         private IUserPreferences _mockUserPreferences;
         private ISessionLedger _mockSessionLedger;
+        private ITokenHelper _mockTokenHelper;
         private ToolManager _toolManager;
         private const string WorkingDir = @"C:\temp";
 
@@ -27,7 +28,8 @@ namespace CodeMonkey.Tests
             _mockManifestService = Substitute.For<IManifestService>();
             _mockUserPreferences = Substitute.For<IUserPreferences>();
             _mockSessionLedger = Substitute.For<ISessionLedger>();
-            _toolManager = new ToolManager(_mockFileSystem, _mockShell, _mockManifestService, _mockUserPreferences, _mockSessionLedger);
+            _mockTokenHelper = Substitute.For<ITokenHelper>();
+            _toolManager = new ToolManager(_mockFileSystem, _mockShell, _mockManifestService, _mockUserPreferences, _mockSessionLedger, _mockTokenHelper);
         }
 
         [Test]
@@ -48,7 +50,7 @@ namespace CodeMonkey.Tests
             var result = _toolManager.ExecuteTool(tool, args, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("content"));
+            Assert.That(result.Output, Is.EqualTo("content"));
             _mockManifestService.Received(1).RequestApproval(Arg.Any<Manifest>(), TrustProfile.Strict);
         }
 
@@ -90,7 +92,7 @@ namespace CodeMonkey.Tests
             var result = _toolManager.ExecuteTool(tool, args, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("Success"));
+            Assert.That(result.Output, Is.EqualTo("Success"));
         }
 
         [Test]
@@ -131,7 +133,7 @@ namespace CodeMonkey.Tests
             var result = _toolManager.ExecuteTool(tool, args, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("listing"));
+            Assert.That(result.Output, Is.EqualTo("listing"));
         }
 
         [Test]

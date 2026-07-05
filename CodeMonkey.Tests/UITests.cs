@@ -78,7 +78,7 @@ namespace CodeMonkey.Tests.UI_Logic
         public void Log_AddsToBufferAndTriggersEvent()
         {
             var logManager = new LogManager();
-            string receivedLog = null;
+            string? receivedLog = null;
             logManager.OnLogAdded += (msg) => receivedLog = msg;
 
             logManager.Log("Test Message");
