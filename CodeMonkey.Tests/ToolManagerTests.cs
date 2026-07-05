@@ -1,6 +1,7 @@
 using NSubstitute;
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Services;
+using CodeMonkey.Core.Models;
 using System;
 using CodeMonkey.Core.Models;
 
@@ -14,6 +15,7 @@ namespace CodeMonkey.Tests
         private IManifestService _mockManifestService;
         private IUserPreferences _mockUserPreferences;
         private ISessionLedger _mockSessionLedger;
+        private ITokenHelper _mockTokenHelper;
         private ToolManager _toolManager;
         private const string WorkingDir = @"C:\temp";
 
@@ -25,7 +27,11 @@ namespace CodeMonkey.Tests
             _mockManifestService = Substitute.For<IManifestService>();
             _mockUserPreferences = Substitute.For<IUserPreferences>();
             _mockSessionLedger = Substitute.For<ISessionLedger>();
-            _toolManager = new ToolManager(_mockFileSystem, _mockShell, _mockManifestService, _mockUserPreferences, _mockSessionLedger);
+            _mockTokenHelper = Substitute.For<ITokenHelper>();
+            
+            _mockUserPreferences.ActiveProfile.Returns(TrustProfile.Balanced);
+            
+            _toolManager = new ToolManager(_mockFileSystem, _mockShell, _mockManifestService, _mockUserPreferences, _mockSessionLedger, _mockTokenHelper);
         }
 
         [Test]
@@ -36,10 +42,9 @@ namespace CodeMonkey.Tests
             string argsJson = "{\"path\": \"test.txt\", \"content\": \"hello world\"}";
             _mockFileSystem.WriteFile("test.txt", "hello world", WorkingDir).Returns("File written successfully");
             
-            // Setup manifest to auto-approve
-            var manifest = new CodeMonkey.Core.Models.Manifest { ActionName = name, Risk = CodeMonkey.Core.Models.RiskLevel.Medium, Description = "test description" };
-            _mockManifestService.CreateManifest(Arg.Any<string>(), Arg.Any<CodeMonkey.Core.Models.RiskLevel>(), Arg.Any<string>(), Arg.Any<string[]>()).Returns(manifest);
-            _mockManifestService.RequestApproval(manifest, Arg.Any<CodeMonkey.Core.Models.TrustProfile>()).Returns(true);
+            var manifest = new Manifest { ActionName = name, Risk = RiskLevel.Medium, Description = "Write to file: test.txt" };
+            _mockManifestService.CreateManifest(Arg.Any<string>(), Arg.Any<RiskLevel>(), Arg.Any<string>(), Arg.Any<string[]>()).Returns(manifest);
+            _mockManifestService.RequestApproval(manifest, Arg.Any<TrustProfile>()).Returns(true);
 
             // Act
             var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
@@ -52,6 +57,25 @@ namespace CodeMonkey.Tests
         }
 
         [Test]
+        public void ExecuteTool_WriteFile_PendingApproval()
+        {
+            // Arrange
+            string name = "write_file";
+            string argsJson = "{\"path\": \"test.txt\", \"content\": \"hello world\"}";
+            
+            var manifest = new Manifest { ActionName = name, Risk = RiskLevel.Medium, Description = "Write to file: test.txt" };
+            _mockManifestService.CreateManifest(Arg.Any<string>(), Arg.Any<RiskLevel>(), Arg.Any<string>(), Arg.Any<string[]>()).Returns(manifest);
+            _mockManifestService.RequestApproval(manifest, Arg.Any<TrustProfile>()).Returns(false);
+
+            // Act
+            var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
+
+            // Assert
+            Assert.That(result.Output, Is.EqualTo($"Pending approval for tool '{name}': {manifest.Description}"));
+            _mockFileSystem.DidNotReceive().WriteFile(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+        }
+
+        [Test]
         public void ExecuteTool_ReadFile_Success()
         {
             // Arrange
@@ -59,9 +83,9 @@ namespace CodeMonkey.Tests
             string argsJson = "{\"path\": \"test.txt\"}";
             _mockFileSystem.ReadFile("test.txt", WorkingDir).Returns("file content");
             
-            var manifest = new CodeMonkey.Core.Models.Manifest { ActionName = name, Risk = CodeMonkey.Core.Models.RiskLevel.Low, Description = "test description" };
-            _mockManifestService.CreateManifest(Arg.Any<string>(), Arg.Any<CodeMonkey.Core.Models.RiskLevel>(), Arg.Any<string>(), Arg.Any<string[]>()).Returns(manifest);
-            _mockManifestService.RequestApproval(manifest, Arg.Any<CodeMonkey.Core.Models.TrustProfile>()).Returns(true);
+            var manifest = new Manifest { ActionName = name, Risk = RiskLevel.Low, Description = "Read file: test.txt" };
+            _mockManifestService.CreateManifest(Arg.Any<string>(), Arg.Any<RiskLevel>(), Arg.Any<string>(), Arg.Any<string[]>()).Returns(manifest);
+            _mockManifestService.RequestApproval(manifest, Arg.Any<TrustProfile>()).Returns(true);
 
             // Act
             var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
@@ -81,9 +105,9 @@ namespace CodeMonkey.Tests
             string argsJson = "{\"command\": \"dir\"}";
             _mockShell.RunCommand("dir", WorkingDir).Returns("directory listing");
 
-            var manifest = new CodeMonkey.Core.Models.Manifest { ActionName = "Shell: run_command", Risk = CodeMonkey.Core.Models.RiskLevel.High, Description = "test description" };
-            _mockManifestService.CreateManifest(Arg.Any<string>(), Arg.Any<CodeMonkey.Core.Models.RiskLevel>(), Arg.Any<string>(), Arg.Any<string[]>()).Returns(manifest);
-            _mockManifestService.RequestApproval(manifest, Arg.Any<CodeMonkey.Core.Models.TrustProfile>()).Returns(true);
+            var manifest = new Manifest { ActionName = name, Risk = RiskLevel.High, Description = "Run command: dir" };
+            _mockManifestService.CreateManifest(Arg.Any<string>(), Arg.Any<RiskLevel>(), Arg.Any<string>(), Arg.Any<string[]>()).Returns(manifest);
+            _mockManifestService.RequestApproval(manifest, Arg.Any<TrustProfile>()).Returns(true);
 
             // Act
             var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
@@ -118,9 +142,9 @@ namespace CodeMonkey.Tests
             string name = "read_file";
             string argsJson = "{invalid json}";
             
-            var manifest = new CodeMonkey.Core.Models.Manifest { ActionName = name, Risk = CodeMonkey.Core.Models.RiskLevel.Low, Description = "test description" };
-            _mockManifestService.CreateManifest(Arg.Any<string>(), Arg.Any<CodeMonkey.Core.Models.RiskLevel>(), Arg.Any<string>(), Arg.Any<string[]>()).Returns(manifest);
-            _mockManifestService.RequestApproval(manifest, Arg.Any<CodeMonkey.Core.Models.TrustProfile>()).Returns(true);
+            var manifest = new Manifest { ActionName = name, Risk = RiskLevel.Low, Description = "Read file: unknown" };
+            _mockManifestService.CreateManifest(Arg.Any<string>(), Arg.Any<RiskLevel>(), Arg.Any<string>(), Arg.Any<string[]>()).Returns(manifest);
+            _mockManifestService.RequestApproval(manifest, Arg.Any<TrustProfile>()).Returns(true);
 
             // Act
             ToolResult result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
@@ -140,9 +164,9 @@ namespace CodeMonkey.Tests
             _mockFileSystem.ReadFile(Arg.Any<string>(), Arg.Any<string>())
                            .Returns(_ => throw new Exception("Disk error"));
 
-            var manifest = new CodeMonkey.Core.Models.Manifest { ActionName = name, Risk = CodeMonkey.Core.Models.RiskLevel.Low, Description = "test description" };
-            _mockManifestService.CreateManifest(Arg.Any<string>(), Arg.Any<CodeMonkey.Core.Models.RiskLevel>(), Arg.Any<string>(), Arg.Any<string[]>()).Returns(manifest);
-            _mockManifestService.RequestApproval(manifest, Arg.Any<CodeMonkey.Core.Models.TrustProfile>()).Returns(true);
+            var manifest = new Manifest { ActionName = name, Risk = RiskLevel.Low, Description = "Read file: missing.txt" };
+            _mockManifestService.CreateManifest(Arg.Any<string>(), Arg.Any<RiskLevel>(), Arg.Any<string>(), Arg.Any<string[]>()).Returns(manifest);
+            _mockManifestService.RequestApproval(manifest, Arg.Any<TrustProfile>()).Returns(true);
 
             // Act
             var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);

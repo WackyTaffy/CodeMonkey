@@ -61,7 +61,7 @@ namespace CodeMonkey.Tests
         [Test]
         public void ValidateAndNormalize_NullOrEmptyRoot_ThrowsArgumentException()
         {
-            Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize(null, @"C:\Project\file.txt"));
+            Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize(null!, @"C:\Project\file.txt"));
             Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize("", @"C:\Project\file.txt"));
             Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize(" ", @"C:\Project\file.txt"));
         }
@@ -69,7 +69,7 @@ namespace CodeMonkey.Tests
         [Test]
         public void ValidateAndNormalize_NullOrEmptyPath_ThrowsArgumentException()
         {
-            Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize(_root, null));
+            Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize(_root, null!));
             Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize(_root, ""));
             Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize(_root, " "));
         }

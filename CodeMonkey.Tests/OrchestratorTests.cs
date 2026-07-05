@@ -16,6 +16,7 @@ namespace CodeMonkey.Tests
         private IPromptProvider _mockPromptProvider;
         private IFileSystem _mockFileSystem;
         private IConversationManager _mockConversationManager;
+        private IContextGuard _mockContextGuard;
         private Orchestrator _orchestrator;
         private const string WorkingDir = @"C:\temp";
 
@@ -63,6 +64,7 @@ namespace CodeMonkey.Tests
             // Assert
             _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "system"));
             _mockConversationManager.DidNotReceive().AddMessage(Arg.Is<Message>(m => m.Role == "context"));
+            
         }
 
         [Test]
@@ -118,6 +120,58 @@ namespace CodeMonkey.Tests
                 Arg.Any<Action<string>>(), 
                 Arg.Any<Action<ToolResult>>(), 
                 systemPrompt);
+        }
+
+        [Test]
+        public async Task ProcessUserRequestAsync_ToolOutputTooLarge_TruncatesAndAddsToConversation()
+        {
+            // Arrange
+            string userInput = "Get large output";
+            var messages = new List<Message> { new Message("user", userInput) };
+            _mockConversationManager.GetMessages().Returns(messages);
+            
+            var response1 = new ChatResponse
+            {
+                Choices = new List<Choice>
+                {
+                    new Choice 
+                    { 
+                        Message = new Message("assistant", null, new List<ToolCall> 
+                        { 
+                            new ToolCall { Id = "1", Function = new FunctionCall { Name = "get_large_output", Arguments = "{}" } } 
+                        }) 
+                    }
+                }
+            };
+            var response2 = new ChatResponse
+            {
+                Choices = new List<Choice>
+                {
+                    new Choice { Message = new Message("assistant", "I got the truncated output.") }
+                }
+            };
+
+            _mockLlmClient.GetChatCompletionAsync(Arg.Any<List<Message>>())
+                          .Returns(
+                              Task.FromResult(response1),
+                              Task.FromResult(response2)
+                          );
+
+            string oversizedOutput = new string('A', 20000);
+            string truncatedOutput = "Truncated version of " + oversizedOutput.Substring(0, 10) + "... [TRUNCATED]";
+            
+            _mockToolManager.ExecuteTool("get_large_output", "{}", WorkingDir, null)
+                           .Returns(ToolResult.Success(oversizedOutput));
+            
+            _mockContextGuard.Guard(oversizedOutput, ContextConstants.MaxToolOutputTokens)
+                           .Returns(truncatedOutput);
+
+            // Act
+            var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir);
+
+            // Assert
+            Assert.That(result, Is.EqualTo("I got the truncated output."));
+            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "tool" && m.Content == truncatedOutput && m.ToolCallId == "1"));
         }
     }
 }

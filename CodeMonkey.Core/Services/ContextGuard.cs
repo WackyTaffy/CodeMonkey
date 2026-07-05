@@ -1,5 +1,6 @@
 using System;
 using CodeMonkey.Core.Interfaces;
+using CodeMonkey.Core.Utility;
 
 namespace CodeMonkey.Core.Services
 {
@@ -11,9 +12,9 @@ namespace CodeMonkey.Core.Services
 
     public class ContextGuard : IContextGuard
     {
-        private readonly CodeMonkey.Core.Utility.GemmaTokenHelper _tokenHelper;
+        private readonly ITokenHelper _tokenHelper;
 
-        public ContextGuard(CodeMonkey.Core.Utility.GemmaTokenHelper tokenHelper)
+        public ContextGuard(ITokenHelper tokenHelper)
         {
             _tokenHelper = tokenHelper;
         }
@@ -33,10 +34,7 @@ namespace CodeMonkey.Core.Services
             int approxCharsToKeep = maxTokens * 4;
             string truncated = input.Length <= approxCharsToKeep ? input : input.Substring(0, approxCharsToKeep);
             
-            return $"[SYSTEM NOTICE: This content is too large to fit in context. " +
-                   $"Only the first ~{maxTokens} tokens are shown. " +
-                   $"To read more, use 'read_file_chunked' with start/end line numbers.]\n\n" + 
-                   truncated;
+            return $"{truncated}\n\n{ContextConstants.TruncationNotice}";
         }
 
         public int GetTokenCount(string text)

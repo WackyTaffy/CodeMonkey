@@ -1,8 +1,12 @@
 using CodeMonkey.Core.Interfaces;
-using System.Text.Json;
 using CodeMonkey.Core.Models;
+using CodeMonkey.Core.Utility;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.IO;
 
 namespace CodeMonkey.Core.Services
 {
@@ -13,15 +17,19 @@ namespace CodeMonkey.Core.Services
         private readonly IManifestService _manifestService;
         private readonly IUserPreferences _userPreferences;
         private readonly ISessionLedger _sessionLedger;
+        private readonly ITokenHelper _tokenHelper;
         private readonly JsonSerializerOptions _options;
 
-        public ToolManager(IFileSystem fileSystem, IShell shell, IManifestService manifestService, IUserPreferences userPreferences, ISessionLedger sessionLedger)
+        private const int _MAX_OUTPUT_LENGTH_TOKENS = 2500;
+
+        public ToolManager(IFileSystem fileSystem, IShell shell, IManifestService manifestService, IUserPreferences userPreferences, ISessionLedger sessionLedger, ITokenHelper tokenHelper)
         {
             this._fileSystem = fileSystem;
             this._shell = shell;
             this._manifestService = manifestService;
             this._userPreferences = userPreferences;
             this._sessionLedger = sessionLedger;
+            this._tokenHelper = tokenHelper;
             this._options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -119,7 +127,43 @@ namespace CodeMonkey.Core.Services
                 success = false;
             }
 
-            _sessionLedger.RecordAction(actionName, success, $"Args: {argsJson} | Result: {executionResult}");
+            _sessionLedger.RecordAction(name, success, $"Args: {argsJson} | Result: {executionResult}");
+
+            var safeLengthResult = RestrictLength(executionResult);
+            return ToolResult.Success(safeLengthResult);
+        }
+
+        private (RiskLevel Risk, string Description, string[] Args) GetManifestDetails(string name, string argsJson)
+        {
+            switch (name)
+            {
+                case "write_file":
+                    var writeArgs = ParseArguments<WriteFileArgs>(argsJson);
+                    return (RiskLevel.Medium, $"Write to file: {writeArgs?.Path}", new[] { writeArgs?.Path ?? "unknown" });
+                case "read_file":
+                    var readArgs = ParseArguments<ReadFileArgs>(argsJson);
+                    return (RiskLevel.Low, $"Read file: {readArgs?.Path}", new[] { readArgs?.Path ?? "unknown" });
+                case "read_file_chunked":
+                    var chunkArgs = ParseArguments<ReadFileChunkedArgs>(argsJson);
+                    return (RiskLevel.Low, $"Read chunk of file: {chunkArgs?.Path}", new[] { chunkArgs?.Path ?? "unknown" });
+                case "get_file_list":
+                    var listArgs = ParseArguments<GetFileListArgs>(argsJson);
+                    return (RiskLevel.Low, $"List files with pattern: {listArgs?.SearchPattern}", new[] { listArgs?.SearchPattern ?? "unknown" });
+                case "run_command":
+                    var cmdArgs = ParseArguments<RunCommandArgs>(argsJson);
+                    return (RiskLevel.High, $"Run command: {cmdArgs?.Command}", new[] { cmdArgs?.Command ?? "unknown" });
+                default:
+                    return (RiskLevel.Low, "Unknown tool", new string[0]);
+            }
+        }
+
+        private string RestrictLength(string str)
+        {
+            var tokenLength = _tokenHelper.GetTokenCount(str);
+            if (tokenLength < _MAX_OUTPUT_LENGTH_TOKENS)
+                return str;
+
+            var strBuilder = new StringBuilder();
 
             return new ToolResult
             {
@@ -143,24 +187,6 @@ namespace CodeMonkey.Core.Services
             };
         }
 
-        private RiskLevel GetRiskLevel(string name)
-        {
-            return name switch
-            {
-                "read_file" => RiskLevel.Low,
-                "read_file_chunked" => RiskLevel.Low,
-                "get_file_list" => RiskLevel.Low,
-                "write_file" => RiskLevel.Medium,
-                "run_command" => RiskLevel.High,
-                _ => RiskLevel.High
-            };
-        }
-
-        private string GetToolDescription(string name, string argsJson)
-        {
-            return $"Executing tool {name} with arguments {argsJson};";
-        }
-
         private string ExecuteWriteFile(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<WriteFileArgs>(argsJson);
@@ -179,7 +205,7 @@ namespace CodeMonkey.Core.Services
         {
             var args = ParseArguments<ReadFileChunkedArgs>(argsJson);
             if (args == null) throw new ArgumentException("Invalid arguments");
-            return _fileSystem.ReadFileChunked(args.Path, args.StartLine, args.EndLine, workingDirectory);
+            return _fileSystem.ReadFileRange(args.Path, args.StartLine, args.EndLine, workingDirectory);
         }
 
         private string ExecuteGetFileList(string argsJson, string workingDirectory)

@@ -31,8 +31,11 @@ namespace CodeMonkey.Cli
             var manifestService = new ManifestService();
             var userPreferences = new UserPreferences();
             var sessionLedger = new SessionLedger();
+            
+            var tokenHelper = new GemmaTokenHelper();
+            var contextGuard = new ContextGuard(tokenHelper);
 
-            _toolManager = new ToolManager(_fileSystem, _shell, manifestService, userPreferences, sessionLedger);
+            _toolManager = new ToolManager(_fileSystem, _shell, manifestService, userPreferences, sessionLedger, tokenHelper);
             _conversationManager = new ConversationManager();
 
             // Modular Services DI
@@ -61,7 +64,14 @@ namespace CodeMonkey.Cli
             // Subscribe to orchestrator status updates
             _orchestrator.OnStatusUpdate = (status) => 
             {
-                WriteLog($"[STATUS] {status}");
+                if (status.StartsWith("[REASONING]"))
+                {
+                    WriteReasoning(status.Replace("[REASONING]", ""));
+                }
+                else
+                {
+                    WriteLog($"[STATUS] {status}");
+                }
             };
 
             string? userInput = null;
@@ -142,6 +152,14 @@ namespace CodeMonkey.Cli
             var origColor = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.DarkGray;
             Console.WriteLine(str);
+            Console.ForegroundColor = origColor;
+        }
+
+        private static void WriteReasoning(string str)
+        {
+            var origColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[REASONING] {str}");
             Console.ForegroundColor = origColor;
         }
 

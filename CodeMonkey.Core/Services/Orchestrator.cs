@@ -2,6 +2,7 @@ using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
 using System;
 using System.Threading.Tasks;
+using CodeMonkey.Core.Utility;
 
 namespace CodeMonkey.Core.Services
 {
@@ -26,6 +27,7 @@ namespace CodeMonkey.Core.Services
             _promptProvider = promptProvider;
             _fileSystem = fileSystem;
             _conversationManager = conversationManager;
+            _contextGuard = contextGuard;
         }
 
         public void BootstrapContext(string workingDirectory)
