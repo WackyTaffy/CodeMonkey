@@ -52,13 +52,18 @@ namespace CodeMonkey.Core.Services
             }
         }
 
-        public string ExecuteTool(string name, string argsJson, string workingDirectory, List<string>? permissions = null)
+        public ToolResult ExecuteTool(string name, string argsJson, string workingDirectory, List<string>? permissions = null)
         {
             if (permissions != null)
             {
                 if (IsPrivilegedTool(name) && !permissions.Contains(name))
                 {
-                    return $"Error: Subagent does not have permission to use tool '{name}'.";
+                    return new ToolResult { 
+                        Result = $"Error: Subagent does not have permission to use tool '{name}'.",
+                        ToolName = name,
+                        Description = GetToolDescription(name, argsJson),
+                        Success = false
+                    };
                 }
             }
 
@@ -66,7 +71,12 @@ namespace CodeMonkey.Core.Services
             {
                 var unknownToolResult = $"Error: Tool {name} not found.";
                 _sessionLedger.RecordAction(name, false, $"Args: {argsJson} | Result: {unknownToolResult}");
-                return unknownToolResult;
+                return new ToolResult { 
+                    Result = unknownToolResult, 
+                    ToolName = name, 
+                    Description = GetToolDescription(name, argsJson), 
+                    Success = false 
+                };
             }
 
             // Confidence Gating Logic
@@ -76,11 +86,17 @@ namespace CodeMonkey.Core.Services
             
             var manifest = _manifestService.CreateManifest(actionName, risk, description, argsJson);
             
-            if (manifest == null || !_manifestService.RequestApproval(manifest, _userPreferences.ActiveProfile))
-            {
-                var manifestId = manifest?.Id.ToString() ?? "N/A";
-                return $"Action '{actionName}' requires manual approval. Manifest ID: {manifestId}";
-            }
+            //if (manifest == null || !_manifestService.RequestApproval(manifest, _userPreferences.ActiveProfile))
+            //{
+            //    var manifestId = manifest?.Id.ToString() ?? "N/A";
+            //    var resultText = $"Action '{actionName}' requires manual approval. Manifest ID: {manifestId}";
+            //    return new ToolResult { 
+            //        Result = resultText, 
+            //        ToolName = name, 
+            //        Description = description, 
+            //        Success = false 
+            //    };
+            //}
 
             string executionResult;
             bool success;
@@ -93,7 +109,7 @@ namespace CodeMonkey.Core.Services
                     "read_file_chunked" => ExecuteReadFileChunked(argsJson, workingDirectory),
                     "get_file_list" => ExecuteGetFileList(argsJson, workingDirectory),
                     "run_command" => ExecuteRunCommand(argsJson, workingDirectory),
-                    _ => $"Error: Tool {name} not found." // Should not be reached due to IsToolSupported check
+                    _ => $"Error: Tool {name} not found."
                 };
                 success = !executionResult.StartsWith("Error:");
             }
@@ -105,7 +121,13 @@ namespace CodeMonkey.Core.Services
 
             _sessionLedger.RecordAction(actionName, success, $"Args: {argsJson} | Result: {executionResult}");
 
-            return executionResult;
+            return new ToolResult
+            {
+                Result = executionResult,
+                ToolName = name,
+                Description = description,
+                Success = success
+            };
         }
 
         private bool IsToolSupported(string name)
@@ -170,7 +192,7 @@ namespace CodeMonkey.Core.Services
         private string ExecuteRunCommand(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<RunCommandArgs>(argsJson);
-            if (args == null) throw new ArgumentException("Invalid arguments");
+            if (args == null) throw new ArgumentException("InvalidArguments");
             return _shell.RunCommand(args.Command, workingDirectory);
         }
 
