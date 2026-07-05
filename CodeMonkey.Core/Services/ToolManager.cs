@@ -60,18 +60,18 @@ namespace CodeMonkey.Core.Services
             }
         }
 
-        public void ApproveManifest(Guid id)
-        {
-            _manifestService.ApproveManifest(id);
-        }
-
         public ToolResult ExecuteTool(string name, string argsJson, string workingDirectory, List<string>? permissions = null)
         {
             if (permissions != null)
             {
                 if (IsPrivilegedTool(name) && !permissions.Contains(name))
                 {
-                    return ToolResult.Success($"Error: Subagent does not have permission to use tool '{name}'.");
+                    return new ToolResult { 
+                        Result = $"Error: Subagent does not have permission to use tool '{name}'.",
+                        ToolName = name,
+                        Description = GetToolDescription(name, argsJson),
+                        Success = false
+                    };
                 }
             }
 
@@ -79,15 +79,31 @@ namespace CodeMonkey.Core.Services
             {
                 var unknownToolResult = $"Error: Tool {name} not found.";
                 _sessionLedger.RecordAction(name, false, $"Args: {argsJson} | Result: {unknownToolResult}");
-                return ToolResult.Success(unknownToolResult);
+                return new ToolResult { 
+                    Result = unknownToolResult, 
+                    ToolName = name, 
+                    Description = GetToolDescription(name, argsJson), 
+                    Success = false 
+                };
             }
 
-            // Authorization via ManifestService
-            //var (risk, description, manifestArgs) = GetManifestDetails(name, argsJson);
-            //var manifest = _manifestService.CreateManifest(name, risk, description, manifestArgs);
-            //if (!_manifestService.RequestApproval(manifest, _userPreferences.ActiveProfile))
+            // Confidence Gating Logic
+            var risk = GetRiskLevel(name);
+            var actionName = name == "run_command" ? "Shell: run_command" : name;
+            var description = GetToolDescription(name, argsJson);
+            
+            var manifest = _manifestService.CreateManifest(actionName, risk, description, argsJson);
+            
+            //if (manifest == null || !_manifestService.RequestApproval(manifest, _userPreferences.ActiveProfile))
             //{
-            //    return ToolResult.NeedsApproval(manifest.Id);
+            //    var manifestId = manifest?.Id.ToString() ?? "N/A";
+            //    var resultText = $"Action '{actionName}' requires manual approval. Manifest ID: {manifestId}";
+            //    return new ToolResult { 
+            //        Result = resultText, 
+            //        ToolName = name, 
+            //        Description = description, 
+            //        Success = false 
+            //    };
             //}
 
             string executionResult;
@@ -149,29 +165,13 @@ namespace CodeMonkey.Core.Services
 
             var strBuilder = new StringBuilder();
 
-            Func<string, bool> willHitTokenCap = (string appendStr) =>
+            return new ToolResult
             {
-                int currentTokenCount = _tokenHelper.GetTokenCount(strBuilder.ToString());
-                int lineTokenCount = _tokenHelper.GetTokenCount(appendStr);
-                return (currentTokenCount + lineTokenCount) >= _MAX_OUTPUT_LENGTH_TOKENS;
+                Result = executionResult,
+                ToolName = name,
+                Description = description,
+                Success = success
             };
-
-            using (StringReader reader = new StringReader(str))
-            {
-                string? line;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    if(willHitTokenCap(line))
-                    {
-                        strBuilder.AppendLine("WARNING! Results truncated due to excessive length");
-                        break;
-                    }
-
-                    strBuilder.AppendLine(line);
-                }
-            }
-
-            return strBuilder.ToString();
         }
 
         private bool IsToolSupported(string name)
@@ -218,7 +218,7 @@ namespace CodeMonkey.Core.Services
         private string ExecuteRunCommand(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<RunCommandArgs>(argsJson);
-            if (args == null) throw new ArgumentException("Invalid arguments");
+            if (args == null) throw new ArgumentException("InvalidArguments");
             return _shell.RunCommand(args.Command, workingDirectory);
         }
 
