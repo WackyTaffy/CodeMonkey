@@ -18,3 +18,5 @@ The following bugs or behaviors have been noted by a user and require investigat
 ## Confusion during output
 - **Logs:**
 	- `C:\Sourcecode\CodeMonkey\.agents\logs\6-28_response-confusion.log`
+
+## Loses User Prompt on compaction?

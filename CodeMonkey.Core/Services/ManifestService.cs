@@ -9,15 +9,36 @@ namespace CodeMonkey.Core.Services
     public class ManifestService : IManifestService
     {
         private readonly List<Manifest> _pendingManifests = new();
+        private readonly HashSet<string> _approvedActionHashes = new();
+
+        private string ComputeHash(string action, List<string> args)
+        {
+            return $"{action}|{string.Join("|", args)}";
+        }
 
         public Manifest CreateManifest(string action, RiskLevel risk, string description, params string[] args)
         {
+            var argsList = args.ToList();
+            var hash = ComputeHash(action, argsList);
+
+            if (_approvedActionHashes.Contains(hash))
+            {
+                return new Manifest
+                {
+                    ActionName = action,
+                    Risk = risk,
+                    Description = description,
+                    Arguments = argsList,
+                    IsApproved = true
+                };
+            }
+
             var manifest = new Manifest
             {
                 ActionName = action,
                 Risk = risk,
                 Description = description,
-                Arguments = args.ToList()
+                Arguments = argsList
             };
             
             _pendingManifests.Add(manifest);
@@ -26,6 +47,8 @@ namespace CodeMonkey.Core.Services
 
         public bool RequestApproval(Manifest manifest, TrustProfile profile)
         {
+            if (manifest.IsApproved) return true;
+
             if (profile == TrustProfile.Trusting)
             {
                 if (manifest.ActionName.Contains("Delete") || manifest.ActionName.Contains("Shell"))
@@ -33,6 +56,7 @@ namespace CodeMonkey.Core.Services
                     return false;
                 }
                 manifest.IsApproved = true;
+                _approvedActionHashes.Add(ComputeHash(manifest.ActionName, manifest.Arguments));
                 return true;
             }
 
@@ -41,6 +65,7 @@ namespace CodeMonkey.Core.Services
                 if (manifest.Risk == RiskLevel.Low || manifest.Risk == RiskLevel.Medium)
                 {
                     manifest.IsApproved = true;
+                    _approvedActionHashes.Add(ComputeHash(manifest.ActionName, manifest.Arguments));
                     return true;
                 }
                 return false;
@@ -51,6 +76,7 @@ namespace CodeMonkey.Core.Services
                 if (manifest.Risk == RiskLevel.Low)
                 {
                     manifest.IsApproved = true;
+                    _approvedActionHashes.Add(ComputeHash(manifest.ActionName, manifest.Arguments));
                     return true;
                 }
                 return false;
@@ -67,7 +93,11 @@ namespace CodeMonkey.Core.Services
         public void ApproveManifest(Guid id)
         {
             var manifest = _pendingManifests.FirstOrDefault(m => m.Id == id);
-            if (manifest != null) manifest.IsApproved = true;
+            if (manifest != null) 
+            {
+                manifest.IsApproved = true;
+                _approvedActionHashes.Add(ComputeHash(manifest.ActionName, manifest.Arguments));
+            }
         }
 
         public void RejectManifest(Guid id)

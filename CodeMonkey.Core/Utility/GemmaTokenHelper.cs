@@ -1,8 +1,9 @@
-﻿using Microsoft.ML.Tokenizers;
+using Microsoft.ML.Tokenizers;
+using CodeMonkey.Core.Interfaces;
 
 namespace CodeMonkey.Core.Utility
 {
-    public class GemmaTokenHelper
+    public class GemmaTokenHelper : ITokenHelper
     {
         private SentencePieceTokenizer? _tokenizer;
         private readonly object _lock = new();
@@ -29,7 +30,7 @@ namespace CodeMonkey.Core.Utility
 
                 using var modelStream = File.OpenRead(_modelPath);
 
-                // Gemma models typically expect a Beginning of Sentence (<bos>) token
+                // Gemma models typically expect a Beginning of Sentence () token
                 _tokenizer = SentencePieceTokenizer.Create(modelStream, addBeginningOfSentence: true);
             }
         }

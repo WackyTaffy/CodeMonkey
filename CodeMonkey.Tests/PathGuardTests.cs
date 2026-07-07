@@ -57,10 +57,11 @@ namespace CodeMonkey.Tests
             Assert.Throws<UnauthorizedAccessException>(() => PathGuard.ValidateAndNormalize(root, path));
         }
 
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
         [Test]
         public void ValidateAndNormalize_NullOrEmptyRoot_ThrowsArgumentException()
         {
-            Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize(null, @"C:\Project\file.txt"));
+            Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize(null!, @"C:\Project\file.txt"));
             Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize("", @"C:\Project\file.txt"));
             Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize(" ", @"C:\Project\file.txt"));
         }
@@ -68,10 +69,11 @@ namespace CodeMonkey.Tests
         [Test]
         public void ValidateAndNormalize_NullOrEmptyPath_ThrowsArgumentException()
         {
-            Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize(_root, null));
+            Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize(_root, null!));
             Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize(_root, ""));
             Assert.Throws<ArgumentException>(() => PathGuard.ValidateAndNormalize(_root, " "));
         }
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
         [Test]
         public void IsWithinRoot_ValidPath_ReturnsTrue()

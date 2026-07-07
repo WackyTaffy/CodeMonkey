@@ -1,10 +1,5 @@
 using CodeMonkey.Core.Interfaces;
-using CodeMonkey.Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CodeMonkey.Core.Services
 {
@@ -19,7 +14,7 @@ namespace CodeMonkey.Core.Services
             return File.Exists(fullPath) ? File.ReadAllText(fullPath) : FileNotFoundMessage;
         }
 
-        public string ReadFileChunked(string path, int startLine, int endLine, string workingDirectory)
+        public string ReadFileRange(string path, int startLine, int endLine, string workingDirectory)
         {
             string fullPath = Path.IsPathRooted(path) ? path : Path.Combine(workingDirectory, path);
             if (!File.Exists(fullPath)) return FileNotFoundMessage;
@@ -39,7 +34,63 @@ namespace CodeMonkey.Core.Services
             }
             catch (Exception ex)
             {
-                return $"Error reading chunk: {ex.Message}";
+                return $"Error reading range: {ex.Message}";
+            }
+        }
+
+        public string ReadFileHead(string path, int lineCount, string workingDirectory)
+        {
+            string fullPath = Path.IsPathRooted(path) ? path : Path.Combine(workingDirectory, path);
+            if (!File.Exists(fullPath)) return FileNotFoundMessage;
+
+            try
+            {
+                var lines = File.ReadAllLines(fullPath);
+                var head = lines.Take(lineCount);
+                return $"--- First {lineCount} lines ---\n" + string.Join(Environment.NewLine, head);
+            }
+            catch (Exception ex)
+            {
+                return $"Error reading head: {ex.Message}";
+            }
+        }
+
+        public string ReadFileTail(string path, int lineCount, string workingDirectory)
+        {
+            string fullPath = Path.IsPathRooted(path) ? path : Path.Combine(workingDirectory, path);
+            if (!File.Exists(fullPath)) return FileNotFoundMessage;
+
+            try
+            {
+                var lines = File.ReadAllLines(fullPath);
+                var tail = lines.Skip(Math.Max(0, lines.Length - lineCount));
+                return $"--- Last {lineCount} lines ---\n" + string.Join(Environment.NewLine, tail);
+            }
+            catch (Exception ex)
+            {
+                return $"Error reading tail: {ex.Message}";
+            }
+        }
+
+        public string Grep(string pattern, string path, string workingDirectory)
+        {
+            string fullPath = Path.IsPathRooted(path) ? path : Path.Combine(workingDirectory, path);
+            if (!File.Exists(fullPath)) return FileNotFoundMessage;
+
+            try
+            {
+                var lines = File.ReadAllLines(fullPath);
+                var matches = lines
+                    .Select((line, index) => new { line, index })
+                    .Where(x => Regex.IsMatch(x.line, pattern))
+                    .Select(x => $"{x.index + 1}: {x.line}")
+                    .ToList();
+
+                return matches.Any() ? string.Join(Environment.NewLine, matches) : "No matches found.";
+            }
+            catch (Exception ex)
+            {
+                return $"Error during grep: {ex.Message}";
             }
         }
 

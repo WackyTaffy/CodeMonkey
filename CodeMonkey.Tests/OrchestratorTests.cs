@@ -5,41 +5,49 @@ using CodeMonkey.Core.Services;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using NUnit.Framework;
-using System.Linq;
+using System;
 
 namespace CodeMonkey.Tests
 {
     [TestFixture]
     public class OrchestratorTests
     {
-        private ILLMClient _mockLlmClient;
-        private IToolManager _mockToolManager;
+        private IAgentExecutor _mockAgentExecutor;
+        private IPromptProvider _mockPromptProvider;
         private IFileSystem _mockFileSystem;
         private IConversationManager _mockConversationManager;
+        private IContextGuard _mockContextGuard;
         private Orchestrator _orchestrator;
         private const string WorkingDir = @"C:\temp";
 
         [SetUp]
         public void Setup()
         {
-            _mockLlmClient = Substitute.For<ILLMClient>();
-            _mockToolManager = Substitute.For<IToolManager>();
+            _mockAgentExecutor = Substitute.For<IAgentExecutor>();
+            _mockPromptProvider = Substitute.For<IPromptProvider>();
             _mockFileSystem = Substitute.For<IFileSystem>();
             _mockConversationManager = Substitute.For<IConversationManager>();
-            _orchestrator = new Orchestrator(_mockLlmClient, _mockToolManager, _mockFileSystem, _mockConversationManager);
+            
+            _orchestrator = new Orchestrator(
+                _mockAgentExecutor, 
+                _mockPromptProvider, 
+                _mockFileSystem, 
+                _mockConversationManager);
         }
 
         [Test]
         public void BootstrapContext_SetsSystemPromptAndAddsIndex()
         {
             // Arrange
+            string expectedPrompt = "You are an expert .NET developer";
+            _mockPromptProvider.GetSystemPrompt(WorkingDir).Returns(expectedPrompt);
             _mockFileSystem.ReadFile("INDEX.md", WorkingDir).Returns("Index content");
 
             // Act
             _orchestrator.BootstrapContext(WorkingDir);
 
             // Assert
-            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "system" && m.Content != null && m.Content.Contains("You are an expert .NET developer")));
+            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "system" && m.Content == expectedPrompt));
             _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "context" && m.Content == "Index content"));
         }
 
@@ -47,6 +55,7 @@ namespace CodeMonkey.Tests
         public void BootstrapContext_IndexNotFound_DoesNotAddIndex()
         {
             // Arrange
+            _mockPromptProvider.GetSystemPrompt(WorkingDir).Returns("System Prompt");
             _mockFileSystem.ReadFile("INDEX.md", WorkingDir).Returns("File not found");
 
             // Act
@@ -55,6 +64,7 @@ namespace CodeMonkey.Tests
             // Assert
             _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "system"));
             _mockConversationManager.DidNotReceive().AddMessage(Arg.Is<Message>(m => m.Role == "context"));
+            
         }
 
         [Test]
@@ -62,51 +72,64 @@ namespace CodeMonkey.Tests
         {
             // Arrange
             string expectedSummary = "Context has been compacted.";
-            _mockConversationManager.CompactAsync(_mockLlmClient, Arg.Any<string>()).Returns(Task.FromResult(expectedSummary));
+            string systemPrompt = "System Prompt";
+            var mockLlmClient = Substitute.For<ILLMClient>();
+            
+            _mockAgentExecutor.Client.Returns(mockLlmClient);
+            _mockPromptProvider.GetSystemPrompt(WorkingDir).Returns(systemPrompt);
+            _mockConversationManager.CompactAsync(mockLlmClient, systemPrompt).Returns(Task.FromResult(expectedSummary));
 
             // Act
             var result = await _orchestrator.CompactContextAsync(WorkingDir);
 
             // Assert
             Assert.That(result, Is.EqualTo(expectedSummary));
-            await _mockConversationManager.Received().CompactAsync(_mockLlmClient, Arg.Any<string>());
+            await _mockConversationManager.Received().CompactAsync(mockLlmClient, systemPrompt);
         }
 
         [Test]
-        public async Task ProcessUserRequestAsync_SimpleResponse_ReturnsContent()
+        public async Task ProcessUserRequestAsync_DelegatesToAgentExecutor()
         {
             // Arrange
             string userInput = "Hello";
-            var messages = new List<Message> { new Message("user", userInput) };
-            _mockConversationManager.GetMessages().Returns(messages);
+            string systemPrompt = "System Prompt";
+            string expectedResponse = "Hi there!";
             
-            var mockResponse = new ChatResponse
-            {
-                Choices = new List<Choice>
-                {
-                    new Choice { Message = new Message("assistant", "Hi there!") }
-                }
-            };
-            _mockLlmClient.GetChatCompletionAsync(Arg.Any<List<Message>>()).Returns(Task.FromResult(mockResponse));
+            _mockPromptProvider.GetSystemPrompt(WorkingDir).Returns(systemPrompt);
+            _mockAgentExecutor.ExecuteLoopAsync(
+                "Main Agent", 
+                _mockConversationManager, 
+                WorkingDir, 
+                null, 
+                Arg.Any<Action<string>>(), 
+                Arg.Any<Action<ToolResult>>(), 
+                systemPrompt)
+                .Returns(Task.FromResult(expectedResponse));
 
             // Act
             var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("Hi there!"));
+            Assert.That(result, Is.EqualTo(expectedResponse));
             _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "user" && m.Content == userInput));
-            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "assistant" && m.Content == "Hi there!"));
+            await _mockAgentExecutor.Received(1).ExecuteLoopAsync(
+                "Main Agent", 
+                _mockConversationManager, 
+                WorkingDir, 
+                null, 
+                Arg.Any<Action<string>>(), 
+                Arg.Any<Action<ToolResult>>(), 
+                systemPrompt);
         }
 
         [Test]
-        public async Task ProcessUserRequestAsync_ToolCall_ExecutesToolAndContinues()
+        public async Task ProcessUserRequestAsync_ToolOutputTooLarge_TruncatesAndAddsToConversation()
         {
             // Arrange
-            string userInput = "List files";
+            string userInput = "Get large output";
             var messages = new List<Message> { new Message("user", userInput) };
             _mockConversationManager.GetMessages().Returns(messages);
             
-            // First response: call tool
             var response1 = new ChatResponse
             {
                 Choices = new List<Choice>
@@ -115,17 +138,16 @@ namespace CodeMonkey.Tests
                     { 
                         Message = new Message("assistant", null, new List<ToolCall> 
                         { 
-                            new ToolCall { Id = "1", Function = new FunctionCall { Name = "get_file_list", Arguments = "{\"recursive\": \"false\"}" } } 
+                            new ToolCall { Id = "1", Function = new FunctionCall { Name = "get_large_output", Arguments = "{}" } } 
                         }) 
                     }
                 }
             };
-            // Second response: final answer
             var response2 = new ChatResponse
             {
                 Choices = new List<Choice>
                 {
-                    new Choice { Message = new Message("assistant", "Here are the files: a.txt, b.txt") }
+                    new Choice { Message = new Message("assistant", "I got the truncated output.") }
                 }
             };
 
@@ -135,77 +157,21 @@ namespace CodeMonkey.Tests
                               Task.FromResult(response2)
                           );
 
-            _mockToolManager.ExecuteTool("get_file_list", "{\"recursive\": \"false\"}", WorkingDir, null)
-                           .Returns("a.txt\nb.txt");
-
-            // Act
-            var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir);
-
-            // Assert
-            Assert.That(result, Is.EqualTo("Here are the files: a.txt, b.txt"));
-            _mockToolManager.Received(1).ExecuteTool("get_file_list", "{\"recursive\": \"false\"}", WorkingDir, null);
-        }
-
-        [Test]
-        public async Task ProcessUserRequestAsync_SubagentDispatch_ExecutesSubagentAndContinues()
-        {
-            // Arrange
-            string userInput = "Run a complex task";
-            var messages = new List<Message> { new Message("user", userInput) };
-            _mockConversationManager.GetMessages().Returns(messages);
+            string oversizedOutput = new string('A', 20000);
+            string truncatedOutput = "Truncated version of " + oversizedOutput.Substring(0, 10) + "... [TRUNCATED]";
             
-            // 1. Main agent decides to dispatch a subagent
-            var response1 = new ChatResponse
-            {
-                Choices = new List<Choice>
-                {
-                    new Choice 
-                    { 
-                        Message = new Message("assistant", null, new List<ToolCall> 
-                        { 
-                            new ToolCall { Id = "1", Function = new FunctionCall { Name = "dispatch_subagent", Arguments = "task: 'Find errors', permissions: 'read_file'" } } 
-                        }) 
-                    }
-                }
-            };
-
-            // 2. Subagent provides a result (simulated via LLM client call for subagent loop)
-            var response2 = new ChatResponse
-            {
-                Choices = new List<Choice>
-                {
-                    new Choice { Message = new Message("assistant", "Subagent found 2 errors") }
-                }
-            };
-
-            // 3. Main agent provides final response after getting subagent result
-            var response3 = new ChatResponse
-            {
-                Choices = new List<Choice>
-                {
-                    new Choice { Message = new Message("assistant", "The subagent found 2 errors, I will now fix them") }
-                }
-            };
-
-            _mockLlmClient.GetChatCompletionAsync(Arg.Any<List<Message>>())
-                          .Returns(
-                          Task.FromResult(response1),
-                          Task.FromResult(response2),
-                          Task.FromResult(response3)
-                          );
-
-            _mockToolManager.ParseArguments<SubagentDispatchArgs>(Arg.Any<string>()).Returns(new SubagentDispatchArgs
-            {
-                Task = "Find errors",
-                Permissions = new List<string> { "read_file" },
-                InitialContext = new List<string>()
-            });
+            _mockToolManager.ExecuteTool("get_large_output", "{}", WorkingDir, null)
+                           .Returns(ToolResult.Success(oversizedOutput));
+            
+            _mockContextGuard.Guard(oversizedOutput, ContextConstants.MaxToolOutputTokens)
+                           .Returns(truncatedOutput);
 
             // Act
             var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("The subagent found 2 errors, I will now fix them"));
+            Assert.That(result, Is.EqualTo("I got the truncated output."));
+            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "tool" && m.Content == truncatedOutput && m.ToolCallId == "1"));
         }
     }
 }

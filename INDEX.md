@@ -1,20 +1,37 @@
-# Project Index
+# Codebase Index
 
-This file provides a brief overview of the files and directories in the root of the `CodeMonkey` project.
+> CodeMonkey is an AI-powered developer agent system designed for high-context codebase manipulation and orchestration.
 
-## Directories
+## 🧭 Navigation Protocol
+**STOP:** To explore any module or directory, you MUST read the `INDEX.md` file within that directory before listing files or reading source code. This ensures maximum context efficiency and prevents token overflow.
 
-- [CodeMonkey.Console](CodeMonkey.Console/INDEX.md): Contains the console application project, serving as the entry point for the system.
-- [CodeMonkey.Core](CodeMonkey.Core/INDEX.md): Contains the core business logic, models, and services shared across the solution.
-- [CodeMonkey.Tests](CodeMonkey.Tests/INDEX.md): Contains the test suites to ensure the stability and correctness of the codebase.
-- [docs](docs/): Project documentation, including installation guides and prompt examples.
+## 🛠️ Project Structure & Entry Points
+* **`CodeMonkey.Console/`**: CLI entry point $\rightarrow$ `Program.cs`
+* **`CodeMonkey.Core/`**: Business logic & LLM orchestration engine $\rightarrow$ `INDEX.md`
+* **`CodeMonkey.UI/`**: .NET MAUI / Blazor hybrid UI $\rightarrow$ `Main.razor`
+* **`CodeMonkey.UI.Rendering/`**: Specialized markdown rendering engine $\rightarrow$ `INDEX.md`
+* **`CodeMonkey.Tests/`**: Test suites for core and UI logic $\rightarrow$ `INDEX.md`
+* **`docs/`**: Comprehensive project documentation $\rightarrow$ `INDEX.md`
 
-## Agent Skills
+## 📐 Architecture & Dependencies
+`CodeMonkey.Console` $\rightarrow$ `CodeMonkey.Core` $\rightarrow$ `LLM APIs`
+`CodeMonkey.UI` $\rightarrow$ `CodeMonkey.UI.Rendering` $\rightarrow$ `CodeMonkey.Core` $\rightarrow$ `LLM APIs`
 
-- [grill-me](.agents/skills/grill-me/SKILL.md): Interview the user relentlessly about a plan or design until reaching shared understanding.
+## 🗺️ Critical Paths
+* **Orchestration**: `CodeMonkey.Core/Services/Orchestrator.cs` ➡️ LLM Communication ➡️ Tool Execution.
+* **UI Flow**: `CodeMonkey.UI/Main.razor` ➡️ `CodeMonkey.UI/ViewModels/ChatViewModel.cs` ➡️ `CodeMonkey.Core`.
+* **Context Mgmt**: `CodeMonkey.Core/Services/Orchestrator.cs` (Bootstrap) ➡️ `INDEX.md` files.
+* **Risk Mgmt**: `CodeMonkey.Core/Services/ManifestService.cs` ➡️ Action Approval Flow.
 
-## Files
+## 🚀 Developer Quick-Start
+* **Build**: `dotnet build`
+* **Test**: `dotnet test`
 
-- `.gitignore`: Specifies intentionally untracked files that Git should ignore.
-- `CodeMonkey.slnx`: The solution file used by the IDE to manage the projects within the solution.
-- [README.md](README.md): The main entry point for project documentation.
+## 📜 Complementary Guides
+- **Behavior & Standards**: See [AGENTS.md](./AGENTS.md) for the "Laws of the Land."
+- **Architectural Blueprint**: See [CONTEXT-MAP.md](./CONTEXT-MAP.md) for high-level system design.
+
+## ⚙️ Global Rules
+1. **Context Optimization**: Maintain `INDEX.md` files in every significant directory.
+2. **Interface-First**: All core services must be defined by interfaces.
+3. **Documentation**: Architectural changes must be reflected in `docs/designs/`.

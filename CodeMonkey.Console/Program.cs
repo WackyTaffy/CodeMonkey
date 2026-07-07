@@ -31,10 +31,23 @@ namespace CodeMonkey.Cli
             var manifestService = new ManifestService();
             var userPreferences = new UserPreferences();
             var sessionLedger = new SessionLedger();
+            
+            var tokenHelper = new GemmaTokenHelper();
+            var contextGuard = new ContextGuard(tokenHelper);
 
-            _toolManager = new ToolManager(_fileSystem, _shell, manifestService, userPreferences, sessionLedger);
+            _toolManager = new ToolManager(_fileSystem, _shell, manifestService, userPreferences, sessionLedger, tokenHelper);
             _conversationManager = new ConversationManager();
-            _orchestrator = new Orchestrator(_llmClient, _toolManager, _fileSystem, _conversationManager)
+
+            // Modular Services DI
+            var promptProvider = new PromptProvider();
+            var subagentManager = new SubagentManager(promptProvider, _fileSystem, _toolManager);
+            var toolDispatcher = new ToolDispatcher(_toolManager, subagentManager);
+            var agentExecutor = new AgentExecutor(_llmClient, toolDispatcher, _conversationManager);
+            
+            // Break circular dependency
+            subagentManager.SetExecutor(agentExecutor);
+
+            _orchestrator = new Orchestrator(agentExecutor, promptProvider, _fileSystem, _conversationManager)
             {
                 Verbose = verbose
             };
@@ -45,12 +58,20 @@ namespace CodeMonkey.Cli
 
             _orchestrator.BootstrapContext(WorkingDirectory);
 
-            WriteLog($"\nSYSTEM PROMPT: {_orchestrator.GetSystemPrompt(WorkingDirectory)}\n");
+            // Note: GetSystemPrompt moved to promptProvider, but we can still get it via promptProvider
+            WriteLog($"\nSYSTEM PROMPT: {promptProvider.GetSystemPrompt(WorkingDirectory)}\n");
 
             // Subscribe to orchestrator status updates
             _orchestrator.OnStatusUpdate = (status) => 
             {
-                WriteLog($"[STATUS] {status}");
+                if (status.StartsWith("[REASONING]"))
+                {
+                    WriteReasoning(status.Replace("[REASONING]", ""));
+                }
+                else
+                {
+                    WriteLog($"[STATUS] {status}");
+                }
             };
 
             string? userInput = null;
@@ -131,6 +152,14 @@ namespace CodeMonkey.Cli
             var origColor = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.DarkGray;
             Console.WriteLine(str);
+            Console.ForegroundColor = origColor;
+        }
+
+        private static void WriteReasoning(string str)
+        {
+            var origColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[REASONING] {str}");
             Console.ForegroundColor = origColor;
         }
 
