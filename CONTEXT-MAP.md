@@ -35,7 +35,7 @@ graph TD
 - **Primary Responsibility:** Providing the core functionality and rules that govern the system.
 - **Key Components:**
     - `Models`: Domain objects and data structures.
-    - `Services`: Business logic implementations.
+    - `Services`: Business logic implementations (including Surgical File System Services for range-based operations).
     - `Interfaces`: Contracts that decouple the system and allow for easier testing.
 
 ### 3. CodeMonkey.Tests

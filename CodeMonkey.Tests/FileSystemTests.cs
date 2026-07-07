@@ -1,7 +1,9 @@
 using NUnit.Framework;
 using CodeMonkey.Core.Services;
+using CodeMonkey.Core.Models;
 using System.IO;
 using System;
+using System.Collections.Generic;
 
 namespace CodeMonkey.Tests
 {
@@ -98,7 +100,6 @@ namespace CodeMonkey.Tests
 
             Assert.That(result, Does.Contain("root.txt"));
             
-            // Use a simpler check instead of .Or() to avoid NUnit version conflicts
             bool containsWin = result.Contains("subdir\\nested.txt");
             bool containsUnix = result.Contains("subdir/nested.txt");
             Assert.That(containsWin || containsUnix, Is.True, "Should contain the file path in either Windows or Unix format");
@@ -107,11 +108,9 @@ namespace CodeMonkey.Tests
         [Test]
         public void GetFileList_FiltersBinObjAndDotFolders()
         {
-            // Create files in allowed folders
             Directory.CreateDirectory(Path.Combine(_tempDir, "src"));
             File.WriteAllText(Path.Combine(_tempDir, "src", "app.cs"), "code");
 
-            // Create files in ignored folders
             Directory.CreateDirectory(Path.Combine(_tempDir, "bin"));
             File.WriteAllText(Path.Combine(_tempDir, "bin", "app.dll"), "binary");
 
@@ -119,7 +118,7 @@ namespace CodeMonkey.Tests
             File.WriteAllText(Path.Combine(_tempDir, "obj", "app.cache"), "cache");
 
             Directory.CreateDirectory(Path.Combine(_tempDir, "config"));
-            File.WriteAllText(Path.Combine(_tempDir, ".git"), "gitconfig");
+            File.WriteAllText(Path.Combine(_tempDir, "config", ".git"), "gitconfig");
 
             var result = _fileSystem.GetFileList(true, "*", _tempDir);
 
@@ -136,5 +135,277 @@ namespace CodeMonkey.Tests
             var result = _fileSystem.GetFileList(false, "*", _tempDir);
             Assert.That(result, Is.EqualTo("No files in working directory"));
         }
+
+        [Test]
+        public void ReadFileWithSearch_NoMatch_ReturnsNoOccurrencesMessage()
+        {
+            string path = "search_no_match.txt";
+            File.WriteAllText(Path.Combine(_tempDir, path), "line1\nline2\nline3");
+
+            var result = _fileSystem.ReadFileWithSearch(path, "missing", 1, _tempDir);
+
+            Assert.That(result, Is.EqualTo("No occurrences of 'missing' found."));
+        }
+
+        [Test]
+        public void ReadFileWithSearch_MatchAtLine1_ReturnsCorrectRange()
+        {
+            string path = "search_line1.txt";
+            File.WriteAllText(Path.Combine(_tempDir, path), "match1\nline2\nline3");
+
+            var result = _fileSystem.ReadFileWithSearch(path, "match1", 1, _tempDir);
+
+            string expected = $"1: match1{Environment.NewLine}2: line2";
+            Assert.That(result, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void ReadFileWithSearch_MatchAtLastLine_ReturnsCorrectRange()
+        {
+            string path = "search_last_line.txt";
+            File.WriteAllText(Path.Combine(_tempDir, path), "line1\nline2\nmatch3");
+
+            var result = _fileSystem.ReadFileWithSearch(path, "match3", 1, _tempDir);
+
+            string expected = $"2: line2{Environment.NewLine}3: match3";
+            Assert.That(result, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void ReadFileWithSearch_OverlappingRanges_ReturnsMergedBlock()
+        {
+            string path = "search_overlapping.txt";
+            File.WriteAllText(Path.Combine(_tempDir, path), "line1\nmatch2\nline3\nmatch4\nline5");
+
+            var result = _fileSystem.ReadFileWithSearch(path, "match", 1, _tempDir);
+
+            string expected = $"1: line1{Environment.NewLine}2: match2{Environment.NewLine}3: line3{Environment.NewLine}4: match4{Environment.NewLine}5: line5";
+            Assert.That(result, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void ReadFileWithSearch_DistantRanges_ReturnsSeparateBlocks()
+        {
+            string path = "search_distant.txt";
+            File.WriteAllText(Path.Combine(_tempDir, path), "match1\nline2\nline3\nline4\nline5\nmatch6\nline7");
+
+            var result = _fileSystem.ReadFileWithSearch(path, "match", 0, _tempDir);
+
+            string expected = $"1: match1{Environment.NewLine}...{Environment.NewLine}6: match6";
+            Assert.That(result, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void ReadFileWithSearch_EmptyFile_ReturnsEmptyFileMessage()
+        {
+            string path = "search_empty.txt";
+            File.WriteAllText(Path.Combine(_tempDir, path), "");
+
+            var result = _fileSystem.ReadFileWithSearch(path, "match", 1, _tempDir);
+
+            Assert.That(result, Is.EqualTo("File is empty."));
+        }
+
+        [Test]
+        public void ReadFileChunked_EmptyFile_ReturnsEmptyFileMessage()
+        {
+            string path = "chunked_empty.txt";
+            File.WriteAllText(Path.Combine(_tempDir, path), "");
+
+            var result = _fileSystem.ReadFileChunked(path, 1, 1, _tempDir);
+
+            Assert.That(result, Is.EqualTo("File is empty."));
+        }
+
+        [Test]
+        public void ReadFileChunked_StartLineOutOfBounds_ReturnsInvalidRangeMessage()
+        {
+            string path = "chunked_bounds.txt";
+            File.WriteAllText(Path.Combine(_tempDir, path), "L1\nL2\nL3");
+
+            var result = _fileSystem.ReadFileChunked(path, 5, 6, _tempDir);
+
+            Assert.That(result, Is.EqualTo("Invalid line range."));
+        }
+
+        #region WriteFileRange Tests
+
+        private void WriteTestFile(string path, string content)
+        {
+            File.WriteAllText(Path.Combine(_tempDir, path), content);
+        }
+
+        private string ReadTestFile(string path)
+        {
+            return File.ReadAllText(Path.Combine(_tempDir, path)).TrimEnd('\r', '\n');
+        }
+
+        [Test]
+        public void WriteFileRange_Replace_SingleLineFirst_ReplacesFirstLine()
+        {
+            string path = "replace_first.txt";
+            WriteTestFile(path, "L1\nL2\nL3");
+            _fileSystem.WriteFileRange(path, 1, 1, "New1", FileWriteMode.Replace, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("New1\nL2\nL3".Replace("\n", Environment.NewLine)));
+        }
+
+        [Test]
+        public void WriteFileRange_Replace_SingleLineLast_ReplacesLastLine()
+        {
+            string path = "replace_last.txt";
+            WriteTestFile(path, "L1\nL2\nL3");
+            _fileSystem.WriteFileRange(path, 3, 3, "New3", FileWriteMode.Replace, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("L1\nL2\nNew3".Replace("\n", Environment.NewLine)));
+        }
+
+        [Test]
+        public void WriteFileRange_Replace_EntireFile_ReplacesEverything()
+        {
+            string path = "replace_all.txt";
+            WriteTestFile(path, "L1\nL2\nL3");
+            _fileSystem.WriteFileRange(path, 1, 3, "NewContent", FileWriteMode.Replace, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("NewContent"));
+        }
+
+        [Test]
+        public void WriteFileRange_Replace_RangeMiddle_ReplacesMiddleBlock()
+        {
+            string path = "replace_mid.txt";
+            WriteTestFile(path, "L1\nL2\nL3\nL4");
+            _fileSystem.WriteFileRange(path, 2, 3, "New23", FileWriteMode.Replace, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("L1\nNew23\nL4".Replace("\n", Environment.NewLine)));
+        }
+
+        [Test]
+        public void WriteFileRange_InsertBefore_Line1_InsertsAtTop()
+        {
+            string path = "insert_before_1.txt";
+            WriteTestFile(path, "L1\nL2");
+            _fileSystem.WriteFileRange(path, 1, 1, "New0", FileWriteMode.InsertBefore, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("New0\nL1\nL2".Replace("\n", Environment.NewLine)));
+        }
+
+        [Test]
+        public void WriteFileRange_InsertBefore_LastLine_InsertsBeforeLast()
+        {
+            string path = "insert_before_last.txt";
+            WriteTestFile(path, "L1\nL2\nL3");
+            _fileSystem.WriteFileRange(path, 3, 3, "New2.5", FileWriteMode.InsertBefore, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("L1\nL2\nNew2.5\nL3".Replace("\n", Environment.NewLine)));
+        }
+
+        [Test]
+        public void WriteFileRange_InsertAfter_Line1_InsertsAtLine2()
+        {
+            string path = "insert_after_1.txt";
+            WriteTestFile(path, "L1\nL2");
+            _fileSystem.WriteFileRange(path, 1, 1, "New1.5", FileWriteMode.InsertAfter, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("L1\nNew1.5\nL2".Replace("\n", Environment.NewLine)));
+        }
+
+        [Test]
+        public void WriteFileRange_InsertAfter_LastLine_AppendsToEnd()
+        {
+            string path = "insert_after_last.txt";
+            WriteTestFile(path, "L1\nL2");
+            _fileSystem.WriteFileRange(path, 2, 2, "New3", FileWriteMode.InsertAfter, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("L1\nL2\nNew3".Replace("\n", Environment.NewLine)));
+        }
+
+        [Test]
+        public void WriteFileRange_Delete_SingleLineFirst_RemovesFirstLine()
+        {
+            string path = "delete_first.txt";
+            WriteTestFile(path, "L1\nL2\nL3");
+            _fileSystem.WriteFileRange(path, 1, 1, "", FileWriteMode.Delete, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("L2\nL3".Replace("\n", Environment.NewLine)));
+        }
+
+        [Test]
+        public void WriteFileRange_Delete_EntireFile_EmptiesFile()
+        {
+            string path = "delete_all.txt";
+            WriteTestFile(path, "L1\nL2\nL3");
+            _fileSystem.WriteFileRange(path, 1, 3, "", FileWriteMode.Delete, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo(""));
+        }
+
+        [Test]
+        public void WriteFileRange_Boundary_StartLessThanOne_ClampedToOne()
+        {
+            string path = "boundary_start.txt";
+            WriteTestFile(path, "L1\nL2");
+            _fileSystem.WriteFileRange(path, 0, 1, "New", FileWriteMode.Replace, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("New\nL2".Replace("\n", Environment.NewLine)));
+        }
+
+        [Test]
+        public void WriteFileRange_Boundary_EndGreaterThanTotal_ClampedToLast()
+        {
+            string path = "boundary_end.txt";
+            WriteTestFile(path, "L1\nL2");
+            _fileSystem.WriteFileRange(path, 2, 5, "New", FileWriteMode.Replace, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("L1\nNew".Replace("\n", Environment.NewLine)));
+        }
+
+        [Test]
+        public void WriteFileRange_Extreme_StartLineVeryLow_ClampedToOne()
+        {
+            string path = "extreme_start.txt";
+            WriteTestFile(path, "L1\nL2");
+            _fileSystem.WriteFileRange(path, -10, 1, "New", FileWriteMode.Replace, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("New\nL2".Replace("\n", Environment.NewLine)));
+        }
+
+        [Test]
+        public void WriteFileRange_Extreme_EndLineVeryHigh_ClampedToLast()
+        {
+            string path = "extreme_end.txt";
+            WriteTestFile(path, "L1\nL2");
+            _fileSystem.WriteFileRange(path, 2, 9999, "New", FileWriteMode.Replace, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("L1\nNew".Replace("\n", Environment.NewLine)));
+        }
+
+        [Test]
+        public void WriteFileRange_Extreme_BothVeryExtreme_ClampedToFullRange()
+        {
+            string path = "extreme_both.txt";
+            WriteTestFile(path, "L1\nL2");
+            _fileSystem.WriteFileRange(path, -10, 9999, "New", FileWriteMode.Replace, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("New"));
+        }
+
+        [Test]
+        public void WriteFileRange_Boundary_StartGreaterThanEnd_ThrowsArgumentException()
+        {
+            string path = "boundary_invalid.txt";
+            WriteTestFile(path, "L1\nL2");
+            Assert.Throws<ArgumentException>(() => {
+                _fileSystem.WriteFileRange(path, 3, 2, "New", FileWriteMode.Replace, _tempDir);
+            });
+        }
+
+        [Test]
+        public void WriteFileRange_Replace_MultilineContent_PreservesNewlines()
+        {
+            string path = "multiline_replace.txt";
+            WriteTestFile(path, "L1\nL2\nL3");
+            string multilineContent = "NewL1\nNewL2";
+            _fileSystem.WriteFileRange(path, 2, 2, multilineContent, FileWriteMode.Replace, _tempDir);
+            
+            string expected = "L1\nNewL1\nNewL2\nL3".Replace("\n", Environment.NewLine);
+            Assert.That(ReadTestFile(path), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void WriteFileRange_Replace_EmptyFile_InsertsContent()
+        {
+            string path = "replace_empty.txt";
+            WriteTestFile(path, "");
+            _fileSystem.WriteFileRange(path, 1, 1, "NewContent", FileWriteMode.Replace, _tempDir);
+            Assert.That(ReadTestFile(path), Is.EqualTo("NewContent"));
+        }
+
+        #endregion
     }
 }

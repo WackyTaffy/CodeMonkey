@@ -1,5 +1,6 @@
 using CodeMonkey.Core.Interfaces;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using CodeMonkey.Core.Models;
 using System;
 using System.Collections.Generic;
@@ -24,7 +25,8 @@ namespace CodeMonkey.Core.Services
             this._sessionLedger = sessionLedger;
             this._options = new JsonSerializerOptions
             {
-                PropertyNameCaseInsensitive = true
+                PropertyNameCaseInsensitive = true,
+                Converters = { new JsonStringEnumConverter() }
             };
         }
 
@@ -91,6 +93,8 @@ namespace CodeMonkey.Core.Services
                     "write_file" => ExecuteWriteFile(argsJson, workingDirectory),
                     "read_file" => ExecuteReadFile(argsJson, workingDirectory),
                     "read_file_chunked" => ExecuteReadFileChunked(argsJson, workingDirectory),
+                    "read_file_search" => ExecuteReadFileSearch(argsJson, workingDirectory),
+                    "write_file_range" => ExecuteWriteFileRange(argsJson, workingDirectory),
                     "get_file_list" => ExecuteGetFileList(argsJson, workingDirectory),
                     "run_command" => ExecuteRunCommand(argsJson, workingDirectory),
                     _ => $"Error: Tool {name} not found." // Should not be reached due to IsToolSupported check
@@ -115,6 +119,8 @@ namespace CodeMonkey.Core.Services
                 "write_file" => true,
                 "read_file" => true,
                 "read_file_chunked" => true,
+                "read_file_search" => true,
+                "write_file_range" => true,
                 "get_file_list" => true,
                 "run_command" => true,
                 _ => false
@@ -127,8 +133,10 @@ namespace CodeMonkey.Core.Services
             {
                 "read_file" => RiskLevel.Low,
                 "read_file_chunked" => RiskLevel.Low,
+                "read_file_search" => RiskLevel.Low,
                 "get_file_list" => RiskLevel.Low,
                 "write_file" => RiskLevel.Medium,
+                "write_file_range" => RiskLevel.Medium,
                 "run_command" => RiskLevel.High,
                 _ => RiskLevel.High
             };
@@ -136,7 +144,12 @@ namespace CodeMonkey.Core.Services
 
         private string GetToolDescription(string name, string argsJson)
         {
-            return $"Executing tool {name} with arguments {argsJson};";
+            return name switch
+            {
+                "read_file_search" => $"Searching for content in file. Results will include surrounding context. IMPORTANT: Line numbers are 1-indexed. Args: {argsJson}",
+                "write_file_range" => $"Performing surgical update to a file. IMPORTANT: Line numbers are 1-indexed. Args: {argsJson}",
+                _ => $"Executing tool {name} with arguments {argsJson};"
+            };
         }
 
         private string ExecuteWriteFile(string argsJson, string workingDirectory)
@@ -160,6 +173,21 @@ namespace CodeMonkey.Core.Services
             return _fileSystem.ReadFileChunked(args.Path, args.StartLine, args.EndLine, workingDirectory);
         }
 
+        private string ExecuteReadFileSearch(string argsJson, string workingDirectory)
+        {
+            var args = ParseArguments<ReadFileWithSearchArgs>(argsJson);
+            if (args == null) throw new ArgumentException("Invalid arguments");
+            return _fileSystem.ReadFileWithSearch(args.Path, args.SearchTerm, args.ContextLines, workingDirectory);
+        }
+
+        private string ExecuteWriteFileRange(string argsJson, string workingDirectory)
+        {
+            var args = ParseArguments<WriteFileRangeArgs>(argsJson);
+            if (args == null) throw new ArgumentException("Invalid arguments");
+            _fileSystem.WriteFileRange(args.Path, args.StartLine, args.EndLine, args.Content, args.Mode, workingDirectory);
+            return $"Successfully updated {args.Path} in range {args.StartLine}-{args.EndLine} using mode {args.Mode}.";
+        }
+
         private string ExecuteGetFileList(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<GetFileListArgs>(argsJson);
@@ -179,6 +207,7 @@ namespace CodeMonkey.Core.Services
             return name switch
             {
                 "write_file" => true,
+                "write_file_range" => true,
                 "run_command" => true,
                 _ => false
             };

@@ -2,6 +2,8 @@ using NSubstitute;
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Services;
 using System;
+using System.Collections.Generic;
+using NUnit.Framework;
 
 namespace CodeMonkey.Tests
 {
@@ -144,6 +146,27 @@ namespace CodeMonkey.Tests
             // Assert
             Assert.That(result, Is.EqualTo("Error executing tool read_file: Disk error"));
             _mockSessionLedger.Received(1).RecordAction(Arg.Any<string>(), false, Arg.Any<string>());
+        }
+
+        [Test]
+        public void ExecuteTool_WriteFileRange_StringEnum_Success()
+        {
+            // Arrange
+            string name = "write_file_range";
+            // Using string for mode instead of integer
+            string argsJson = "{\"path\": \"test.txt\", \"startLine\": 1, \"endLine\": 5, \"content\": \"new content\", \"mode\": \"Replace\"}";
+            
+            var manifest = new CodeMonkey.Core.Models.Manifest { ActionName = name, Risk = CodeMonkey.Core.Models.RiskLevel.Medium, Description = "test description" };
+            _mockManifestService.CreateManifest(Arg.Any<string>(), Arg.Any<CodeMonkey.Core.Models.RiskLevel>(), Arg.Any<string>(), Arg.Any<string[]>()).Returns(manifest);
+            _mockManifestService.RequestApproval(manifest, Arg.Any<CodeMonkey.Core.Models.TrustProfile>()).Returns(true);
+
+            // Act
+            var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
+
+            // Assert
+            Assert.That(result, Does.Not.Contain("Error:"));
+            Assert.That(result, Does.Contain("Successfully updated"));
+            _mockFileSystem.Received(1).WriteFileRange("test.txt", 1, 5, "new content", Arg.Any<CodeMonkey.Core.Models.FileWriteMode>(), WorkingDir);
         }
     }
 }

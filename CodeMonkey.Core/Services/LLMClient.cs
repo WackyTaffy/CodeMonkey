@@ -97,6 +97,56 @@ namespace CodeMonkey.Core.Services
                 new {
                     type = "function",
                     function = new {
+                        name = "read_file_chunked",
+                        description = "Reads a specific line range from a file. Line numbers are 1-indexed.",
+                        parameters = new {
+                            type = "object",
+                            properties = new {
+                                path = new { type = "string", description = "The file path" },
+                                startLine = new { type = "integer", description = "The starting line number (1-indexed)" },
+                                endLine = new { type = "integer", description = "The ending line number (1-indexed)" }
+                            },
+                            required = new[] { "path", "startLine", "endLine" }
+                        }
+                    }
+                },
+                new {
+                    type = "function",
+                    function = new {
+                        name = "read_file_search",
+                        description = "Searches for a term in a file and returns the matching lines with surrounding context. Line numbers are 1-indexed.",
+                        parameters = new {
+                            type = "object",
+                            properties = new {
+                                path = new { type = "string", description = "The file path" },
+                                searchTerm = new { type = "string", description = "The string to search for" },
+                                contextLines = new { type = "integer", description = "Number of context lines to provide around each match" }
+                            },
+                            required = new[] { "path", "searchTerm", "contextLines" }
+                        }
+                    }
+                },
+                new {
+                    type = "function",
+                    function = new {
+                        name = "write_file_range",
+                        description = "Performs a surgical update to a file. Line numbers are 1-indexed.",
+                        parameters = new {
+                            type = "object",
+                            properties = new {
+                                path = new { type = "string", description = "The file path" },
+                                startLine = new { type = "integer", description = "The starting line number of the range (1-indexed)" },
+                                endLine = new { type = "integer", description = "The ending line number of the range (1-indexed)" },
+                                content = new { type = "string", description = "The new content to place in the range" },
+                                mode = new { type = "string", description = "The write mode: Replace, InsertBefore, InsertAfter, Delete" }
+                            },
+                            required = new[] { "path", "startLine", "endLine", "content", "mode" }
+                        }
+                    }
+                },
+                new {
+                    type = "function",
+                    function = new {
                         name = "get_file_list",
                         description = "Gets a list of accessible files in the directory as relative paths",
                         parameters = new {
