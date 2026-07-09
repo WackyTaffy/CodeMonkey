@@ -28,14 +28,13 @@ namespace CodeMonkey.Cli
             _shell = new Shell();
 
             // Initialize security services
-            var manifestService = new ManifestService();
             var userPreferences = new UserPreferences();
             var sessionLedger = new SessionLedger();
             
             var tokenHelper = new GemmaTokenHelper();
             var contextGuard = new ContextGuard(tokenHelper);
 
-            _toolManager = new ToolManager(_fileSystem, _shell, manifestService, userPreferences, sessionLedger, tokenHelper);
+            _toolManager = new ToolManager(_fileSystem, _shell, userPreferences, sessionLedger, tokenHelper);
             _conversationManager = new ConversationManager();
 
             // Modular Services DI
@@ -91,8 +90,8 @@ namespace CodeMonkey.Cli
                     continue;
                 }
 
-                string response = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDirectory);
-                WriteAiResponse($"\n{response}\n");
+                ToolResult response = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDirectory);
+                WriteAiResponse($"\n{response.ToString()}\n");
 
                 loopCount++;
             } while (loopCount < 100);

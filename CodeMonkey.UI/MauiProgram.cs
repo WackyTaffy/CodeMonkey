@@ -1,7 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
-using CodeMonkey.UI;
-using Microsoft.AspNetCore.Components.WebView.Maui;
-
 namespace CodeMonkey.UI
 {
     public static class MauiProgram

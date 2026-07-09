@@ -1,12 +1,6 @@
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
-using CodeMonkey.Core.Utility;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.IO;
 
 namespace CodeMonkey.Core.Services
 {
@@ -14,7 +8,6 @@ namespace CodeMonkey.Core.Services
     {
         private readonly IFileSystem _fileSystem;
         private readonly IShell _shell;
-        private readonly IManifestService _manifestService;
         private readonly IUserPreferences _userPreferences;
         private readonly ISessionLedger _sessionLedger;
         private readonly ITokenHelper _tokenHelper;
@@ -22,11 +15,10 @@ namespace CodeMonkey.Core.Services
 
         private const int _MAX_OUTPUT_LENGTH_TOKENS = 2500;
 
-        public ToolManager(IFileSystem fileSystem, IShell shell, IManifestService manifestService, IUserPreferences userPreferences, ISessionLedger sessionLedger, ITokenHelper tokenHelper)
+        public ToolManager(IFileSystem fileSystem, IShell shell, IUserPreferences userPreferences, ISessionLedger sessionLedger, ITokenHelper tokenHelper)
         {
             this._fileSystem = fileSystem;
             this._shell = shell;
-            this._manifestService = manifestService;
             this._userPreferences = userPreferences;
             this._sessionLedger = sessionLedger;
             this._tokenHelper = tokenHelper;
@@ -67,12 +59,9 @@ namespace CodeMonkey.Core.Services
             {
                 if (IsPrivilegedTool(name) && !permissions.Contains(name))
                 {
-                    return new ToolResult { 
-                        Result = $"Error: Subagent does not have permission to use tool '{name}'.",
-                        ToolName = name,
-                        Description = GetToolDescription(name, argsJson),
-                        Success = false
-                    };
+                    return ToolResult.Error(name, 
+                        $"Error: Subagent does not have permission to use tool '{name}'.", 
+                        GetToolDescription(name, argsJson));
                 }
             }
 
@@ -80,32 +69,10 @@ namespace CodeMonkey.Core.Services
             {
                 var unknownToolResult = $"Error: Tool {name} not found.";
                 _sessionLedger.RecordAction(name, false, $"Args: {argsJson} | Result: {unknownToolResult}");
-                return new ToolResult { 
-                    Result = unknownToolResult, 
-                    ToolName = name, 
-                    Description = GetToolDescription(name, argsJson), 
-                    Success = false 
-                };
+                return ToolResult.Error(name,
+                    unknownToolResult,
+                    GetToolDescription(name, argsJson));
             }
-
-            // Confidence Gating Logic
-            var risk = GetRiskLevel(name);
-            var actionName = name == "run_command" ? "Shell: run_command" : name;
-            var description = GetToolDescription(name, argsJson);
-            
-            var manifest = _manifestService.CreateManifest(actionName, risk, description, argsJson);
-            
-            //if (manifest == null || !_manifestService.RequestApproval(manifest, _userPreferences.ActiveProfile))
-            //{
-            //    var manifestId = manifest?.Id.ToString() ?? "N/A";
-            //    var resultText = $"Action '{actionName}' requires manual approval. Manifest ID: {manifestId}";
-            //    return new ToolResult { 
-            //        Result = resultText, 
-            //        ToolName = name, 
-            //        Description = description, 
-            //        Success = false 
-            //    };
-            //}
 
             string executionResult;
             bool success;
@@ -133,31 +100,22 @@ namespace CodeMonkey.Core.Services
             _sessionLedger.RecordAction(name, success, $"Args: {argsJson} | Result: {executionResult}");
 
             var safeLengthResult = RestrictLength(executionResult);
-            return ToolResult.Success(safeLengthResult);
+            return ToolResult.Success(name,
+                safeLengthResult,
+                GetToolDescription(name, argsJson));
         }
 
-        private (RiskLevel Risk, string Description, string[] Args) GetManifestDetails(string name, string argsJson)
+        private string GetToolDescription(string name, string argsJson)
         {
-            switch (name)
+            return name switch
             {
-                case "write_file":
-                    var writeArgs = ParseArguments<WriteFileArgs>(argsJson);
-                    return (RiskLevel.Medium, $"Write to file: {writeArgs?.Path}", new[] { writeArgs?.Path ?? "unknown" });
-                case "read_file":
-                    var readArgs = ParseArguments<ReadFileArgs>(argsJson);
-                    return (RiskLevel.Low, $"Read file: {readArgs?.Path}", new[] { readArgs?.Path ?? "unknown" });
-                case "read_file_chunked":
-                    var chunkArgs = ParseArguments<ReadFileChunkedArgs>(argsJson);
-                    return (RiskLevel.Low, $"Read chunk of file: {chunkArgs?.Path}", new[] { chunkArgs?.Path ?? "unknown" });
-                case "get_file_list":
-                    var listArgs = ParseArguments<GetFileListArgs>(argsJson);
-                    return (RiskLevel.Low, $"List files with pattern: {listArgs?.SearchPattern}", new[] { listArgs?.SearchPattern ?? "unknown" });
-                case "run_command":
-                    var cmdArgs = ParseArguments<RunCommandArgs>(argsJson);
-                    return (RiskLevel.High, $"Run command: {cmdArgs?.Command}", new[] { cmdArgs?.Command ?? "unknown" });
-                default:
-                    return (RiskLevel.Low, "Unknown tool", new string[0]);
-            }
+                "write_file" => "Writes content to a file",
+                "read_file" => "Reads content from a file",
+                "read_file_chunked" => "Reads a range of lines from a file",
+                "get_file_list" => "Lists files in a directory",
+                "run_command" => "Runs a shell command",
+                _ => "Unknown tool"
+            };
         }
 
         private string RestrictLength(string str)
@@ -166,15 +124,7 @@ namespace CodeMonkey.Core.Services
             if (tokenLength < _MAX_OUTPUT_LENGTH_TOKENS)
                 return str;
 
-            var strBuilder = new StringBuilder();
-
-            return new ToolResult
-            {
-                Result = executionResult,
-                ToolName = name,
-                Description = description,
-                Success = success
-            };
+            return str.Substring(0, (int)(str.Length * 0.8)) + "... [Truncated]";
         }
 
         private bool IsToolSupported(string name)

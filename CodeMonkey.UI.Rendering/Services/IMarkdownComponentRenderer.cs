@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace CodeMonkey.UI.Rendering.Services
 {
     public interface IMarkdownComponentRenderer

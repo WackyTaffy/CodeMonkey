@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using CodeMonkey.Core.Interfaces;
+using CodeMonkey.Core.Models;
 using CodeMonkey.Core.Services;
 
 namespace CodeMonkey.UI.ViewModels
@@ -78,13 +79,13 @@ namespace CodeMonkey.UI.ViewModels
             try
             {
                 _logManager.Log($"User request: {userMsg}");
-                string response = await _orchestrator.ProcessUserRequestAsync(userMsg, CurrentProjectRoot);
+                ToolResult toolResult = await _orchestrator.ProcessUserRequestAsync(userMsg, CurrentProjectRoot);
                 
                 // Update the message in the collection to trigger UI refresh
                 int index = Messages.IndexOf(assistantMsg);
                 if (index != -1)
                 {
-                    Messages[index] = new ChatMessage { Role = "assistant", Content = response };
+                    Messages[index] = new ChatMessage { Role = "assistant", Content = toolResult.Result };
                 }
             }
             catch (Exception ex)

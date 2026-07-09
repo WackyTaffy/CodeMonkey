@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
-namespace CodeMonkey.UI;
+﻿namespace CodeMonkey.UI;
 
 public partial class App : Application
 {

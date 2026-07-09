@@ -1,8 +1,5 @@
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace CodeMonkey.Core.Services
 {
@@ -17,7 +14,7 @@ namespace CodeMonkey.Core.Services
             _subagentManager = subagentManager;
         }
 
-        public async Task<string> DispatchToolAsync(
+        public async Task<ToolResult> DispatchToolAsync(
             string toolName, 
             string arguments, 
             string workingDirectory, 
@@ -29,8 +26,8 @@ namespace CodeMonkey.Core.Services
                 return await _subagentManager.HandleSubagentDispatchAsync(arguments, workingDirectory);
             }
 
-            var toolResult = _toolManager.ExecuteTool(toolName, arguments, workingDirectory, permissions);
-            return toolResult.Result;
+            ToolResult toolResult = _toolManager.ExecuteTool(toolName, arguments, workingDirectory, permissions);
+            return toolResult;
         }
     }
 }
