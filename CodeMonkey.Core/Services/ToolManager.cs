@@ -24,7 +24,8 @@ namespace CodeMonkey.Core.Services
             this._tokenHelper = tokenHelper;
             this._options = new JsonSerializerOptions
             {
-                PropertyNameCaseInsensitive = true
+                PropertyNameCaseInsensitive = true,
+                Converters = { new JsonStringEnumConverter() }
             };
         }
 
@@ -82,6 +83,8 @@ namespace CodeMonkey.Core.Services
                     "write_file" => ExecuteWriteFile(argsJson, workingDirectory),
                     "read_file" => ExecuteReadFile(argsJson, workingDirectory),
                     "read_file_chunked" => ExecuteReadFileChunked(argsJson, workingDirectory),
+                    "read_file_search" => ExecuteReadFileSearch(argsJson, workingDirectory),
+                    "write_file_range" => ExecuteWriteFileRange(argsJson, workingDirectory),
                     "get_file_list" => ExecuteGetFileList(argsJson, workingDirectory),
                     "run_command" => ExecuteRunCommand(argsJson, workingDirectory),
                     _ => $"Error: Tool {name} not found."
@@ -131,6 +134,8 @@ namespace CodeMonkey.Core.Services
                 "write_file" => true,
                 "read_file" => true,
                 "read_file_chunked" => true,
+                "read_file_search" => true,
+                "write_file_range" => true,
                 "get_file_list" => true,
                 "run_command" => true,
                 _ => false
@@ -158,6 +163,21 @@ namespace CodeMonkey.Core.Services
             return _fileSystem.ReadFileRange(args.Path, args.StartLine, args.EndLine, workingDirectory);
         }
 
+        private string ExecuteReadFileSearch(string argsJson, string workingDirectory)
+        {
+            var args = ParseArguments<ReadFileWithSearchArgs>(argsJson);
+            if (args == null) throw new ArgumentException("Invalid arguments");
+            return _fileSystem.ReadFileWithSearch(args.Path, args.SearchTerm, args.ContextLines, workingDirectory);
+        }
+
+        private string ExecuteWriteFileRange(string argsJson, string workingDirectory)
+        {
+            var args = ParseArguments<WriteFileRangeArgs>(argsJson);
+            if (args == null) throw new ArgumentException("Invalid arguments");
+            _fileSystem.WriteFileRange(args.Path, args.StartLine, args.EndLine, args.Content, args.Mode, workingDirectory);
+            return $"Successfully updated {args.Path} in range {args.StartLine}-{args.EndLine} using mode {args.Mode}.";
+        }
+
         private string ExecuteGetFileList(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<GetFileListArgs>(argsJson);
@@ -177,6 +197,7 @@ namespace CodeMonkey.Core.Services
             return name switch
             {
                 "write_file" => true,
+                "write_file_range" => true,
                 "run_command" => true,
                 _ => false
             };

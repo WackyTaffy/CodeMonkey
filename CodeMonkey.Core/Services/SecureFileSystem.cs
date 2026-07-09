@@ -136,5 +136,49 @@ namespace CodeMonkey.Core.Services
                 throw;
             }
         }
+
+        public string ReadFileWithSearch(string path, string searchTerm, int contextLines, string workingDirectory)
+        {
+            try
+            {
+                string validatedPath = ValidatePath(path, workingDirectory);
+                string result = _inner.ReadFileWithSearch(validatedPath, searchTerm, contextLines, "");
+                _ledger.RecordAction($"ReadFileWithSearch: {validatedPath} (search: {searchTerm})", true, "Search completed successfully");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _ledger.RecordAction($"ReadFileWithSearch: {path}", false, ex.Message);
+                throw;
+            }
+        }
+
+        public void WriteFileRange(string path, int startLine, int endLine, string content, FileWriteMode mode, string workingDirectory)
+        {
+            try
+            {
+                string validatedPath = ValidatePath(path, workingDirectory);
+
+                // Medium Risk: Surgical editing should be gated
+                var manifest = _manifestService.CreateManifest(
+                    "WriteFileRange", 
+                    RiskLevel.Medium, 
+                    $"Surgical edit ({mode}) on lines {startLine}-{endLine} in {validatedPath}", 
+                    validatedPath);
+
+                if (!_manifestService.RequestApproval(manifest, _preferences.ActiveProfile))
+                {
+                    throw new UnauthorizedAccessException($"Approval required for WriteFileRange: {validatedPath}");
+                }
+
+                _inner.WriteFileRange(validatedPath, startLine, endLine, content, mode, "");
+                _ledger.RecordAction($"WriteFileRange: {validatedPath} (lines {startLine}-{endLine}, mode: {mode})", true, "Surgical edit completed successfully");
+            }
+            catch (Exception ex)
+            {
+                _ledger.RecordAction($"WriteFileRange: {path}", false, ex.Message);
+                throw;
+            }
+        }
     }
 }

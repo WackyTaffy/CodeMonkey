@@ -28,25 +28,25 @@ The application starts by sending the system prompt and the content of the root 
 > The `ExecuteTool` method is failing when the arguments are empty. Please fix it and ensure the project still builds.
 
 #### 3. Agent Reasoning & Tool Call (Iteration 1)
-The LLM decides it needs to see the code first.
+The LLM decides it needs to locate the buggy code.
 
 **Message [Assistant]:**
-> I will start by examining the `ToolManager.cs` file to understand how `ExecuteTool` handles arguments.
+> I will start by searching for the `ExecuteTool` method in `ToolManager.cs` to find the relevant line range.
 >
-> **Tool Call:** `read_file`
-> **Arguments:** `{ "path": "CodeMonkey.Core/Services/ToolManager.cs" }`
+> **Tool Call:** `ReadFileWithSearch`
+> **Arguments:** `{ "path": "CodeMonkey.Core/Services/ToolManager.cs", "searchTerm": "ExecuteTool" }`
 
 **Message [Tool]:**
-> (Returns the source code of `ToolManager.cs`)
+> (Returns a chunk of lines containing the `ExecuteTool` method and surrounding context)
 
 #### 4. Implementation & Verification (Iteration 2)
-The LLM identifies the bug and applies a fix.
+The LLM identifies the bug and applies a surgical fix.
 
 **Message [Assistant]:**
-> I've found the issue. The code is attempting to deserialize the arguments without checking for null or empty strings. I will add a guard clause.
+> I've found the issue. The code is attempting to deserialize the arguments without checking for null or empty strings. I will replace the lines containing the failing logic with a guard clause.
 >
-> **Tool Call:** `write_file`
-> **Arguments:** `{ "path": "CodeMonkey.Core/Services/ToolManager.cs", "content": "... [Updated Code with null check] ..." }`
+> **Tool Call:** `WriteFileRange`
+> **Arguments:** `{ "path": "CodeMonkey.Core/Services/ToolManager.cs", "startLine": 42, "endLine": 45, "content": "if (string.IsNullOrEmpty(arguments))\n    {\n        return Result.Failure(\"Arguments cannot be empty\");\n    }", "mode": "Replace" }`
 
 **Message [Tool]:**
 > Successfully wrote to CodeMonkey.Core/Services/ToolManager.cs
@@ -65,4 +65,4 @@ Following the system prompt, the agent must verify the build.
 
 #### 6. Final Response
 **Message [Assistant]:**
-> I have fixed the bug in `ExecuteTool` by adding a guard clause to handle empty arguments. I have verified the fix by running `dotnet build`, which succeeded.
+> I have fixed the bug in `ExecuteTool` by adding a guard clause to handle empty arguments. I have used a surgical range-based write to minimize token usage. I have verified the fix by running `dotnet build`, which succeeded.
