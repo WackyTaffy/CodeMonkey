@@ -78,7 +78,8 @@ namespace CodeMonkey.Core.Services
                             conversationManager);
                         
                         onToolExecuted(result);
-                        conversationManager.AddMessage(new Message("tool", result, toolCall.Id));
+                        var msg = Message.WithToolResult("tool", toolCall.Id, result);
+                        conversationManager.AddMessage(msg);
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(aiMessage?.Content))

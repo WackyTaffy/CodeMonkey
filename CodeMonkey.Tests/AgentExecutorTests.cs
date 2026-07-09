@@ -32,7 +32,7 @@ namespace CodeMonkey.Tests
         public async Task ExecuteLoopAsync_SimpleResponse_ReturnsContent()
         {
             // Arrange
-            var expectedContent = "The answer is 42.";
+            string expectedContent = "The answer is 42.";
             var chatResponse = new ChatResponse
             {
                 Choices = new List<Choice>
@@ -45,7 +45,7 @@ namespace CodeMonkey.Tests
             _mockConversationManager.GetMessages().Returns(new List<Message>());
 
             // Act
-            var result = await _agentExecutor.ExecuteLoopAsync(
+            ToolResult result = await _agentExecutor.ExecuteLoopAsync(
                 "TestAgent", 
                 _mockConversationManager, 
                 WorkingDir, 
@@ -55,7 +55,8 @@ namespace CodeMonkey.Tests
                 SystemPrompt);
 
             // Assert
-            Assert.That(result, Is.EqualTo(expectedContent));
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Result, Is.EqualTo(expectedContent));
             _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Content == expectedContent));
         }
 
@@ -66,7 +67,7 @@ namespace CodeMonkey.Tests
             var toolCallId = "call_123";
             var toolName = "read_file";
             var toolArgs = "{\"path\": \"test.txt\"}";
-            var toolResult = "File content: hello world";
+            var toolResult = ToolResult.Success(toolName, "File content: hello world");
             var finalAnswer = "The file contains 'hello world'.";
 
             // 1. First LLM response: a tool call
@@ -74,15 +75,13 @@ namespace CodeMonkey.Tests
             {
                 Choices = new List<Choice>
                 {
-                    new Choice 
-                    { 
-                        Message = new Message("assistant", null, toolCallId) 
-                        { 
-                            ToolCalls = new List<ToolCall> 
-                            { 
-                                new ToolCall { Id = toolCallId, Function = new FunctionCall { Name = toolName, Arguments = toolArgs } } 
-                            } 
-                        } 
+                    new Choice
+                    {
+                        Message = Message.WithToolResultAndCallList("assistant", toolCallId, ToolResult.Success(toolName), new List<ToolCall>
+                            {
+                                new ToolCall { Id = toolCallId, Function = new FunctionCall { Name = toolName, Arguments = toolArgs } }
+                            }
+                        )
                     }
                 }
             };
@@ -115,13 +114,13 @@ namespace CodeMonkey.Tests
                 SystemPrompt);
 
             // Assert
-            Assert.That(result, Is.EqualTo(finalAnswer));
+            Assert.That(result.Result, Is.EqualTo(finalAnswer));
             
             // Verify tool was dispatched
             await _mockToolDispatcher.Received(1).DispatchToolAsync(toolName, toolArgs, WorkingDir, null, _mockConversationManager);
             
             // Verify tool result was added to conversation
-            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "tool" && m.Content == toolResult && m.ToolCallId == toolCallId));
+            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "tool" && m.Content == toolResult.ToString() && m.ToolCallId == toolCallId));
         }
 
         [Test]
@@ -131,22 +130,21 @@ namespace CodeMonkey.Tests
             var toolCallId = "call_compaction";
             var toolName = "some_tool";
             var toolArgs = "{}";
-            var toolResult = "result";
+            var toolResult = ToolResult.Success(toolName, "result");
             var finalAnswer = "done";
 
             var firstResponse = new ChatResponse
             {
                 Choices = new List<Choice>
                 {
-                    new Choice 
-                    { 
-                        Message = new Message("assistant", null, toolCallId) 
-                        { 
-                            ToolCalls = new List<ToolCall> 
-                            { 
-                                new ToolCall { Id = toolCallId, Function = new FunctionCall { Name = toolName, Arguments = toolArgs } } 
-                            } 
-                        } 
+                    new Choice
+                    {
+                        Message = Message.WithToolCallList("assistant", toolCallId,
+                            new List<ToolCall>
+                            {
+                                new ToolCall { Id = toolCallId, Function = new FunctionCall { Name = toolName, Arguments = toolArgs } }
+                            }
+                        )
                     }
                 }
             };
@@ -155,7 +153,7 @@ namespace CodeMonkey.Tests
             {
                 Choices = new List<Choice>
                 {
-                    new Choice { Message = new Message("assistant", finalAnswer) }
+                    new Choice { Message = Message.WithStringContent("assistant", finalAnswer) }
                 }
             };
 
@@ -218,7 +216,7 @@ namespace CodeMonkey.Tests
                 SystemPrompt);
 
             // Assert
-            Assert.That(result, Is.EqualTo(expectedContent));
+            Assert.That(result.Result, Is.EqualTo(expectedContent));
             await _mockLlmClient.Received(2).GetChatCompletionAsync(Arg.Any<List<Message>>());
         }
 
@@ -242,7 +240,7 @@ namespace CodeMonkey.Tests
                 SystemPrompt);
 
             // Assert
-            Assert.That(result, Does.Contain("AI Response was null or contained no Choices"));
+            Assert.That(result.Result, Does.Contain("AI Response was null or contained no Choices"));
         }
 
         [Test]
@@ -264,7 +262,7 @@ namespace CodeMonkey.Tests
                 SystemPrompt);
 
             // Assert
-            Assert.That(result, Does.Contain("AI Response was null or contained no Choices"));
+            Assert.That(result.Result, Does.Contain("AI Response was null or contained no Choices"));
         }
     }
 }
