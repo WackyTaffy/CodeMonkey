@@ -1,5 +1,6 @@
-using System.Text.Json.Serialization;
+using System.Data;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using YamlDotNet.Serialization;
 
 namespace CodeMonkey.Core.Models
@@ -31,7 +32,7 @@ namespace CodeMonkey.Core.Models
         public List<ToolCall>? ToolCalls { get; set; }
 
         [SetsRequiredMembers]
-        public Message(string role)
+        private Message(string role)
         {
             Role = role;
             Content = null;
@@ -39,7 +40,7 @@ namespace CodeMonkey.Core.Models
         }
 
         [SetsRequiredMembers]
-        public Message(string role, string toolCallId)
+        private Message(string role, string toolCallId)
         {
             Role = role;
             Content = null;
@@ -50,13 +51,14 @@ namespace CodeMonkey.Core.Models
 
         public override string ToString() => $"[{Role}] {ToolCalls?.Count ?? 0} Tool Calls, Content Length = {Content?.Length ?? 0}, Reasoning Length = {ReasoningContent?.Length ?? 0}";
 
-        public static Message WithToolCallList(string role, string toolCallId, List<ToolCall> toolCalls) => new Message(role, toolCallId) { ToolCalls = toolCalls };
-        public static Message WithToolResult(string role, string toolCallId, ToolResult toolResult) => new Message(role, toolCallId) { Content = toolResult.Result };
-        public static Message WithStringContent(string role, string toolCallId, string contentStr) => new Message(role, toolCallId) { Content = contentStr };
-        public static Message WithStringContent(string role, string contentStr) => new Message(role) { Content = contentStr };
-        public static Message WithToolResult(string role, ToolResult toolResult) => new Message(role) { Content = toolResult.Result };
-        public static Message WithToolResultAndCallList(string role, string toolCallId, ToolResult toolResult, List<ToolCall> toolCalls) => new Message(role, toolCallId) { Content = toolResult.Result, ToolCalls = toolCalls };
-        public static Message WithToolResultAndCallList(string role, ToolResult toolResult, List<ToolCall> toolCalls) => new Message(role) { Content = toolResult.Result, ToolCalls = toolCalls };
-
+        public static Message AsSystemPrompt(string contentStr) => new Message("system") { Content = contentStr };
+        public static Message AsContext(string contentStr) => new Message("context") { Content = contentStr };
+        public static Message AsUserMessage(string contentStr) => new Message("user") { Content = contentStr };
+        public static Message AsAssistantMessage(string contentStr) => new Message("assistant") { Content = contentStr };
+        public static Message AsAssistantMessage(string contentStr, string reasoningStr) => new Message("assistant") { Content = contentStr, ReasoningContent = reasoningStr };
+        public static Message AsAssistantMessage(List<ToolCall> toolCalls) => new Message("assistant") { ToolCalls = toolCalls };
+        public static Message AsAssistantMessage(string toolCallId, List<ToolCall> toolCalls) => new Message("assistant", toolCallId) { ToolCalls = toolCalls };
+        public static Message AsAssistantMessage(string toolCallId, ToolResult toolResult, List<ToolCall> toolCalls) => new Message("assistant", toolCallId) { Content = toolResult.Result, ToolCalls = toolCalls };
+        public static Message AsToolResult(string toolCallId, ToolResult toolResult) => new Message("tool", toolCallId) { Content = toolResult.Result };
     }
 }

@@ -37,7 +37,7 @@ namespace CodeMonkey.Tests
             {
                 Choices = new List<Choice>
                 {
-                    new Choice { Message = new Message("assistant", expectedContent) }
+                    new Choice { Message = Message.AsAssistantMessage(expectedContent) }
                 }
             };
 
@@ -77,7 +77,7 @@ namespace CodeMonkey.Tests
                 {
                     new Choice
                     {
-                        Message = Message.WithToolResultAndCallList("assistant", toolCallId, ToolResult.Success(toolName), new List<ToolCall>
+                        Message = Message.AsAssistantMessage(toolCallId, ToolResult.Success(toolName), new List<ToolCall>
                             {
                                 new ToolCall { Id = toolCallId, Function = new FunctionCall { Name = toolName, Arguments = toolArgs } }
                             }
@@ -91,7 +91,7 @@ namespace CodeMonkey.Tests
             {
                 Choices = new List<Choice>
                 {
-                    new Choice { Message = new Message("assistant", finalAnswer) }
+                    new Choice { Message = Message.AsAssistantMessage(finalAnswer) }
                 }
             };
 
@@ -139,7 +139,7 @@ namespace CodeMonkey.Tests
                 {
                     new Choice
                     {
-                        Message = Message.WithToolCallList("assistant", toolCallId,
+                        Message = Message.AsAssistantMessage(toolCallId,
                             new List<ToolCall>
                             {
                                 new ToolCall { Id = toolCallId, Function = new FunctionCall { Name = toolName, Arguments = toolArgs } }
@@ -153,7 +153,7 @@ namespace CodeMonkey.Tests
             {
                 Choices = new List<Choice>
                 {
-                    new Choice { Message = Message.WithStringContent("assistant", finalAnswer) }
+                    new Choice { Message = Message.AsAssistantMessage(finalAnswer) }
                 }
             };
 
@@ -192,7 +192,7 @@ namespace CodeMonkey.Tests
             {
                 Choices = new List<Choice>
                 {
-                    new Choice { Message = new Message("assistant", expectedContent) }
+                    new Choice { Message = Message.AsAssistantMessage(expectedContent) }
                 }
             };
 

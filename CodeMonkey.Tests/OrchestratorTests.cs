@@ -128,22 +128,20 @@ namespace CodeMonkey.Tests
         {
             // Arrange
             string userInput = "Get large output";
-            var messages = new List<Message> { Message.WithStringContent("user", userInput) };
+            var messages = new List<Message> { Message.AsUserMessage(userInput) };
             _mockConversationManager.GetMessages().Returns(messages);
-            
+
             var response1 = new ChatResponse
             {
                 Choices = new List<Choice>
                 {
-                    new Choice 
-                    { 
-                        Message = new Message("assistant") 
-                        { 
-                            ToolCalls = new List<ToolCall> 
-                            { 
-                                new ToolCall { Id = "1", Function = new FunctionCall { Name = "get_large_output", Arguments = "{}" } } 
+                    new Choice
+                    {
+                        Message = Message.AsAssistantMessage(new List<ToolCall>
+                            {
+                                new ToolCall { Id = "1", Function = new FunctionCall { Name = "get_large_output", Arguments = "{}" } }
                             } 
-                        } 
+                        )
                     }
                 }
             };
@@ -151,7 +149,7 @@ namespace CodeMonkey.Tests
             {
                 Choices = new List<Choice>
                 {
-                    new Choice { Message = Message.WithStringContent("assistant", "I got the truncated output.") }
+                    new Choice { Message = Message.AsAssistantMessage("I got the truncated output.") }
                 }
             };
 
