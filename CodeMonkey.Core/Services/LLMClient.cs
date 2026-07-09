@@ -131,6 +131,7 @@ namespace CodeMonkey.Core.Services
                         parameters = new {
                             type = "object",
                             properties = new {
+                                name = new { type = "string", description = "A short, human-readable name for the subagent" },
                                 task = new { type = "string", description = "The specific objective for the subagent" },
                                 permissions = new { 
                                     type = "array", 

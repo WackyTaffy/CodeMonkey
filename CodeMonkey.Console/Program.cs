@@ -40,7 +40,7 @@ namespace CodeMonkey.Cli
             // Modular Services DI
             var promptProvider = new PromptProvider();
             var subagentManager = new SubagentManager(promptProvider, _fileSystem, _toolManager);
-            var toolDispatcher = new ToolDispatcher(_toolManager, subagentManager);
+            var toolDispatcher = new ToolDispatcher(_toolManager, subagentManager, tokenHelper);
             var agentExecutor = new AgentExecutor(_llmClient, toolDispatcher, _conversationManager);
             
             // Break circular dependency
