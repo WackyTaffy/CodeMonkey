@@ -1,9 +1,5 @@
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace CodeMonkey.Core.Services
 {
@@ -22,7 +18,7 @@ namespace CodeMonkey.Core.Services
             _conversationManager = conversationManager;
         }
 
-        public async Task<string> ExecuteLoopAsync(
+        public async Task<ToolResult> ExecuteLoopAsync(
             string agentLabel, 
             IConversationManager conversationManager, 
             string workingDirectory, 
@@ -45,7 +41,7 @@ namespace CodeMonkey.Core.Services
 
                 if (response == null || response.Choices == null || response.Choices.Count == 0)
                 {
-                    return $"AI Response was null or contained no Choices after multiple retries for {agentLabel}.";
+                    return ToolResult.Error("Main Agent Execution", $"AI Response was null or contained no Choices after multiple retries for {agentLabel}.");
                 }
 
                 var aiMessage = response.Choices[0].Message;
@@ -74,25 +70,25 @@ namespace CodeMonkey.Core.Services
 
                         onStatusUpdate($"[{agentLabel}] Calling tool: {toolCall.Function.Name} with args: {toolCall.Function.Arguments}");
 
-                        string result = await _toolDispatcher.DispatchToolAsync(
+                        ToolResult result = await _toolDispatcher.DispatchToolAsync(
                             toolCall.Function.Name, 
                             toolCall.Function.Arguments, 
                             workingDirectory, 
                             permissions, 
                             conversationManager);
                         
-                        onToolExecuted(new ToolResult { Result = result, ToolName = toolCall.Function.Name });
+                        onToolExecuted(result);
                         conversationManager.AddMessage(new Message("tool", result, toolCall.Id));
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(aiMessage?.Content))
                 {
                     conversationManager.AddMessage(aiMessage);
-                    return aiMessage.Content;
+                    return ToolResult.Success("Main Agent Execution", aiMessage.Content);
                 }
                 else
                 {
-                    return $"AI returned an empty response for {agentLabel}.";
+                    return ToolResult.Error("Main Agent Execution", $"AI returned an empty response for {agentLabel}.");
                 }
 
                 if (conversationManager.ShouldCompact(TokenLimit))

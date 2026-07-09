@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace CodeMonkey.Core.Utility
 {
     public static class PathGuard

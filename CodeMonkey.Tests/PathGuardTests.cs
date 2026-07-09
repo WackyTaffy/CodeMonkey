@@ -1,10 +1,4 @@
-using NUnit.Framework;
 using CodeMonkey.Core.Utility;
-using CodeMonkey.Core.Services;
-using CodeMonkey.Core.Interfaces;
-using CodeMonkey.Core.Models;
-using System;
-using System.IO;
 
 namespace CodeMonkey.Tests
 {

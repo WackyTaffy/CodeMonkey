@@ -31,6 +31,14 @@ namespace CodeMonkey.Core.Models
         public List<ToolCall>? ToolCalls { get; set; }
 
         [SetsRequiredMembers]
+        public Message(string role, ToolResult toolResult, string? toolCallId = null)
+        {
+            Role = role;
+            Content = toolResult.ToString();
+            ToolCallId = toolCallId;
+        }
+
+        [SetsRequiredMembers]
         public Message(string role, string content, string? toolCallId = null)
         {
             Role = role;

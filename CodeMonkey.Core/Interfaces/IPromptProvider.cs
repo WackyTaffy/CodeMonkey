@@ -1,5 +1,3 @@
-using System;
-
 namespace CodeMonkey.Core.Interfaces
 {
     public interface IPromptProvider

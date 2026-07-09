@@ -2,8 +2,6 @@ using NSubstitute;
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Services;
 using CodeMonkey.Core.Models;
-using System;
-using CodeMonkey.Core.Models;
 
 namespace CodeMonkey.Tests
 {

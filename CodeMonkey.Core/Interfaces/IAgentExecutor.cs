@@ -1,15 +1,11 @@
-using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace CodeMonkey.Core.Interfaces
 {
     public interface IAgentExecutor
     {
         ILLMClient Client { get; }
-        Task<string> ExecuteLoopAsync(
+        Task<ToolResult> ExecuteLoopAsync(
             string agentLabel, 
             IConversationManager conversationManager, 
             string workingDirectory, 

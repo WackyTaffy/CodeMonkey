@@ -1,7 +1,4 @@
-using NUnit.Framework;
 using CodeMonkey.Core.Services;
-using System.IO;
-using System;
 
 namespace CodeMonkey.Tests
 {

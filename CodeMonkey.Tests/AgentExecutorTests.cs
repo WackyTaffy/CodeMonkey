@@ -2,11 +2,6 @@ using NSubstitute;
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
 using CodeMonkey.Core.Services;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using NUnit.Framework;
-using System;
-using System.Linq;
 
 namespace CodeMonkey.Tests
 {
