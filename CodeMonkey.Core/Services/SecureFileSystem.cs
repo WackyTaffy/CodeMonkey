@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using CodeMonkey.Core.Interfaces;
-using CodeMonkey.Core.Models;
 using CodeMonkey.Core.Utility;
 
 namespace CodeMonkey.Core.Services
@@ -11,14 +8,12 @@ namespace CodeMonkey.Core.Services
         private readonly IFileSystem _inner;
         private readonly IUserPreferences _preferences;
         private readonly ISessionLedger _ledger;
-        private readonly IManifestService _manifestService;
 
-        public SecureFileSystem(IFileSystem inner, IUserPreferences preferences, ISessionLedger ledger, IManifestService manifestService)
+        public SecureFileSystem(IFileSystem inner, IUserPreferences preferences, ISessionLedger ledger)
         {
             _inner = inner;
             _preferences = preferences;
             _ledger = ledger;
-            _manifestService = manifestService;
         }
 
         private string ValidatePath(string path, string workingDirectory)
@@ -103,13 +98,6 @@ namespace CodeMonkey.Core.Services
             {
                 string validatedPath = ValidatePath(path, workingDirectory);
                 
-                // High Risk: File writing should be gated
-                var manifest = _manifestService.CreateManifest("WriteFile", RiskLevel.Medium, $"Write content to {validatedPath}", validatedPath);
-                if (!_manifestService.RequestApproval(manifest, _preferences.ActiveProfile))
-                {
-                    return $"Pending approval for WriteFile: {validatedPath}";
-                }
-
                 string result = _inner.WriteFile(validatedPath, content, "");
                 _ledger.RecordAction($"WriteFile: {validatedPath}", true, result);
                 return result;

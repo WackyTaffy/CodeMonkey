@@ -7,7 +7,7 @@ namespace CodeMonkey.Core.Interfaces
         Action<string>? OnStatusUpdate { get; set; }
         Action<ToolResult>? OnToolExecuted { get; set; }
         bool Verbose { get; set; }
-        Task<string> ProcessUserRequestAsync(string userInput, string workingDirectory);
+        Task<ToolResult> ProcessUserRequestAsync(string userInput, string workingDirectory);
         Task<string> CompactContextAsync(string workingDirectory);
         void BootstrapContext(string workingDirectory);
         string GetSystemPrompt(string workingDirectory);

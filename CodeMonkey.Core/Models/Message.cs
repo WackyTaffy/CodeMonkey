@@ -31,23 +31,32 @@ namespace CodeMonkey.Core.Models
         public List<ToolCall>? ToolCalls { get; set; }
 
         [SetsRequiredMembers]
-        public Message(string role, string content, string? toolCallId = null)
+        public Message(string role)
         {
             Role = role;
-            Content = content;
-            ToolCallId = toolCallId;
+            Content = null;
+            ToolCallId = null;
         }
 
         [SetsRequiredMembers]
-        public Message(string role, string? content, List<ToolCall>? toolCalls)
+        public Message(string role, string toolCallId)
         {
             Role = role;
-            Content = content;
-            ToolCalls = toolCalls;
+            Content = null;
+            ToolCallId = toolCallId;
         }
 
         public Message() { }
 
         public override string ToString() => $"[{Role}] {ToolCalls?.Count ?? 0} Tool Calls, Content Length = {Content?.Length ?? 0}, Reasoning Length = {ReasoningContent?.Length ?? 0}";
+
+        public static Message WithToolCallList(string role, string toolCallId, List<ToolCall> toolCalls) => new Message(role, toolCallId) { ToolCalls = toolCalls };
+        public static Message WithToolResult(string role, string toolCallId, ToolResult toolResult) => new Message(role, toolCallId) { Content = toolResult.Result };
+        public static Message WithStringContent(string role, string toolCallId, string contentStr) => new Message(role, toolCallId) { Content = contentStr };
+        public static Message WithStringContent(string role, string contentStr) => new Message(role) { Content = contentStr };
+        public static Message WithToolResult(string role, ToolResult toolResult) => new Message(role) { Content = toolResult.Result };
+        public static Message WithToolResultAndCallList(string role, string toolCallId, ToolResult toolResult, List<ToolCall> toolCalls) => new Message(role, toolCallId) { Content = toolResult.Result, ToolCalls = toolCalls };
+        public static Message WithToolResultAndCallList(string role, ToolResult toolResult, List<ToolCall> toolCalls) => new Message(role) { Content = toolResult.Result, ToolCalls = toolCalls };
+
     }
 }

@@ -1,5 +1,3 @@
-using System;
-
 namespace CodeMonkey.Core.Utility
 {
     public static class ContextConstants

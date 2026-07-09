@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace CodeMonkey.Core.Interfaces
 {
     public interface ISessionLedger

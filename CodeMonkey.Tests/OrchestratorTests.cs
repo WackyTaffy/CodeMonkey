@@ -2,10 +2,7 @@ using NSubstitute;
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
 using CodeMonkey.Core.Services;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using NUnit.Framework;
-using System;
+using CodeMonkey.Core.Utility;
 
 namespace CodeMonkey.Tests
 {
@@ -17,6 +14,8 @@ namespace CodeMonkey.Tests
         private IFileSystem _mockFileSystem;
         private IConversationManager _mockConversationManager;
         private IContextGuard _mockContextGuard;
+        private ILLMClient _mockLlmClient;
+        private IToolManager _mockToolManager;
         private Orchestrator _orchestrator;
         private const string WorkingDir = @"C:\temp";
 
@@ -27,6 +26,9 @@ namespace CodeMonkey.Tests
             _mockPromptProvider = Substitute.For<IPromptProvider>();
             _mockFileSystem = Substitute.For<IFileSystem>();
             _mockConversationManager = Substitute.For<IConversationManager>();
+            _mockContextGuard = Substitute.For<IContextGuard>();
+            _mockLlmClient = Substitute.For<ILLMClient>();
+            _mockToolManager = Substitute.For<IToolManager>();
             
             _orchestrator = new Orchestrator(
                 _mockAgentExecutor, 
@@ -73,18 +75,17 @@ namespace CodeMonkey.Tests
             // Arrange
             string expectedSummary = "Context has been compacted.";
             string systemPrompt = "System Prompt";
-            var mockLlmClient = Substitute.For<ILLMClient>();
             
-            _mockAgentExecutor.Client.Returns(mockLlmClient);
+            _mockAgentExecutor.Client.Returns(_mockLlmClient);
             _mockPromptProvider.GetSystemPrompt(WorkingDir).Returns(systemPrompt);
-            _mockConversationManager.CompactAsync(mockLlmClient, systemPrompt).Returns(Task.FromResult(expectedSummary));
+            _mockConversationManager.CompactAsync(_mockLlmClient, systemPrompt).Returns(Task.FromResult(expectedSummary));
 
             // Act
             var result = await _orchestrator.CompactContextAsync(WorkingDir);
 
             // Assert
             Assert.That(result, Is.EqualTo(expectedSummary));
-            await _mockConversationManager.Received().CompactAsync(mockLlmClient, systemPrompt);
+            await _mockConversationManager.Received().CompactAsync(_mockLlmClient, systemPrompt);
         }
 
         [Test]
@@ -104,13 +105,13 @@ namespace CodeMonkey.Tests
                 Arg.Any<Action<string>>(), 
                 Arg.Any<Action<ToolResult>>(), 
                 systemPrompt)
-                .Returns(Task.FromResult(expectedResponse));
+                .Returns(Task.FromResult(ToolResult.Success("Main Agent", expectedResponse)));
 
             // Act
             var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo(expectedResponse));
+            Assert.That(result.Result, Is.EqualTo(expectedResponse));
             _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "user" && m.Content == userInput));
             await _mockAgentExecutor.Received(1).ExecuteLoopAsync(
                 "Main Agent", 
@@ -127,7 +128,7 @@ namespace CodeMonkey.Tests
         {
             // Arrange
             string userInput = "Get large output";
-            var messages = new List<Message> { new Message("user", userInput) };
+            var messages = new List<Message> { Message.WithStringContent("user", userInput) };
             _mockConversationManager.GetMessages().Returns(messages);
             
             var response1 = new ChatResponse
@@ -136,10 +137,13 @@ namespace CodeMonkey.Tests
                 {
                     new Choice 
                     { 
-                        Message = new Message("assistant", null, new List<ToolCall> 
+                        Message = new Message("assistant") 
                         { 
-                            new ToolCall { Id = "1", Function = new FunctionCall { Name = "get_large_output", Arguments = "{}" } } 
-                        }) 
+                            ToolCalls = new List<ToolCall> 
+                            { 
+                                new ToolCall { Id = "1", Function = new FunctionCall { Name = "get_large_output", Arguments = "{}" } } 
+                            } 
+                        } 
                     }
                 }
             };
@@ -147,7 +151,7 @@ namespace CodeMonkey.Tests
             {
                 Choices = new List<Choice>
                 {
-                    new Choice { Message = new Message("assistant", "I got the truncated output.") }
+                    new Choice { Message = Message.WithStringContent("assistant", "I got the truncated output.") }
                 }
             };
 
@@ -161,7 +165,7 @@ namespace CodeMonkey.Tests
             string truncatedOutput = "Truncated version of " + oversizedOutput.Substring(0, 10) + "... [TRUNCATED]";
             
             _mockToolManager.ExecuteTool("get_large_output", "{}", WorkingDir, null)
-                           .Returns(ToolResult.Success(oversizedOutput));
+                           .Returns(ToolResult.Success("get_large_output", oversizedOutput));
             
             _mockContextGuard.Guard(oversizedOutput, ContextConstants.MaxToolOutputTokens)
                            .Returns(truncatedOutput);
@@ -170,7 +174,7 @@ namespace CodeMonkey.Tests
             var result = await _orchestrator.ProcessUserRequestAsync(userInput, WorkingDir);
 
             // Assert
-            Assert.That(result, Is.EqualTo("I got the truncated output."));
+            Assert.That(result.Result, Is.EqualTo("I got the truncated output."));
             _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "tool" && m.Content == truncatedOutput && m.ToolCallId == "1"));
         }
     }

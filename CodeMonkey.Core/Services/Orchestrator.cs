@@ -1,8 +1,5 @@
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
-using System;
-using System.Threading.Tasks;
-using CodeMonkey.Core.Utility;
 
 namespace CodeMonkey.Core.Services
 {
@@ -27,7 +24,6 @@ namespace CodeMonkey.Core.Services
             _promptProvider = promptProvider;
             _fileSystem = fileSystem;
             _conversationManager = conversationManager;
-            _contextGuard = contextGuard;
         }
 
         public void BootstrapContext(string workingDirectory)
@@ -49,7 +45,7 @@ namespace CodeMonkey.Core.Services
                 _promptProvider.GetSystemPrompt(workingDirectory));
         }
 
-        public async Task<string> ProcessUserRequestAsync(string userInput, string workingDirectory)
+        public async Task<ToolResult> ProcessUserRequestAsync(string userInput, string workingDirectory)
         {
             _conversationManager.AddMessage(new Message("user", userInput));
 

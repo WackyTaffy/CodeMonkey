@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text.Json;
 using CodeMonkey.Core.Interfaces;
-using CodeMonkey.Core.Models;
 
 namespace CodeMonkey.Core.Services
 {
@@ -11,7 +7,6 @@ namespace CodeMonkey.Core.Services
     {
         private readonly string _configPath;
         public string ProjectRoot { get; set; } = string.Empty;
-        public TrustProfile ActiveProfile { get; set; } = TrustProfile.Balanced;
 
         public UserPreferences()
         {
@@ -43,7 +38,6 @@ namespace CodeMonkey.Core.Services
                     if (prefs != null)
                     {
                         ProjectRoot = prefs.ProjectRoot;
-                        ActiveProfile = prefs.ActiveProfile;
                     }
                 }
             }

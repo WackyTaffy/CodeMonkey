@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace CodeMonkey.UI.Rendering.Models
 {
     public abstract class MarkdownElement { }

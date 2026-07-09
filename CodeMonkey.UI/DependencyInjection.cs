@@ -1,11 +1,7 @@
-using Microsoft.Extensions.DependencyInjection;
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Services;
 using CodeMonkey.UI.Rendering.Services;
 using CodeMonkey.UI.ViewModels;
-using System.IO;
-using System.Collections.Generic;
-using System;
 
 namespace CodeMonkey.UI
 {

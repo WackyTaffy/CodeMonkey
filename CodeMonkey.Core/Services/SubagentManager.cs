@@ -1,14 +1,12 @@
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
-using System;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace CodeMonkey.Core.Services
 {
     public class SubagentManager : ISubagentManager
     {
-        private IAgentExecutor _agentExecutor; // Set via property
+        private IAgentExecutor? _agentExecutor; // Set via property
         private readonly IPromptProvider _promptProvider;
         private readonly IFileSystem _fileSystem;
         private readonly IToolManager _toolManager;
@@ -25,14 +23,14 @@ namespace CodeMonkey.Core.Services
             _agentExecutor = executor;
         }
 
-        public async Task<string> HandleSubagentDispatchAsync(string argsYaml, string workingDirectory)
+        public async Task<ToolResult> HandleSubagentDispatchAsync(string argsYaml, string workingDirectory)
         {
-            if (_agentExecutor == null) return "Error: SubagentManager not initialized with executor";
+            if (_agentExecutor == null) return ToolResult.Error("dispatch_subagent", "SubagentManager not initialized with executor");
 
             try
             {
                 var args = _toolManager.ParseArguments<SubagentDispatchArgs>(argsYaml);
-                if (args == null) return "Error: Invalid arguments for subagent dispatch";
+                if (args == null) return ToolResult.Error("dispatch_subagent", "Invalid arguments for subagent dispatch");
 
                 var subagentConvoMgr = new ConversationManager();
                 string subagentSysPrompt = _promptProvider.GetSubagentSystemPrompt(args.Name, args.Task, workingDirectory);
@@ -63,7 +61,7 @@ namespace CodeMonkey.Core.Services
             }
             catch (Exception ex)
             {
-                return $"Error dispatching subagent: {ex.Message}";
+                return ToolResult.Error("dispatch_subagent", ex);
             }
         }
     }

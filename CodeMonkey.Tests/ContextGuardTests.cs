@@ -1,4 +1,3 @@
-using NUnit.Framework;
 using NSubstitute;
 using CodeMonkey.Core.Services;
 using CodeMonkey.Core.Interfaces;
