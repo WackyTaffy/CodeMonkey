@@ -55,7 +55,7 @@ namespace CodeMonkey.Core.Services
 
         public ToolResult ExecuteTool(string name, string argsJson, string workingDirectory, List<string>? permissions = null)
         {
-            if (permissions != null)
+            if (permissions != null && permissions.Any())
             {
                 if (IsPrivilegedTool(name) && !permissions.Contains(name))
                 {

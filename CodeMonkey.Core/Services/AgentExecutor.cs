@@ -41,7 +41,7 @@ namespace CodeMonkey.Core.Services
 
                 if (response == null || response.Choices == null || response.Choices.Count == 0)
                 {
-                    return ToolResult.Error("Main Agent Execution", $"AI Response was null or contained no Choices after multiple retries for {agentLabel}.");
+                    return ToolResult.Error(agentLabel, $"AI Response was null or contained no Choices after multiple retries for {agentLabel}.");
                 }
 
                 var aiMessage = response.Choices[0].Message;
@@ -78,6 +78,7 @@ namespace CodeMonkey.Core.Services
                             conversationManager);
                         
                         onToolExecuted(result);
+
                         var msg = Message.AsToolResult(toolCall.Id, result);
                         conversationManager.AddMessage(msg);
                     }
@@ -85,11 +86,11 @@ namespace CodeMonkey.Core.Services
                 else if (!string.IsNullOrWhiteSpace(aiMessage?.Content))
                 {
                     conversationManager.AddMessage(aiMessage);
-                    return ToolResult.Success("Main Agent Execution", aiMessage.Content);
+                    return ToolResult.Success(agentLabel, aiMessage.Content);
                 }
                 else
                 {
-                    return ToolResult.Error("Main Agent Execution", $"AI returned an empty response for {agentLabel}.");
+                    return ToolResult.Error(agentLabel, $"AI returned an empty response for {agentLabel}.");
                 }
 
                 if (conversationManager.ShouldCompact(TokenLimit))
