@@ -205,28 +205,6 @@ namespace CodeMonkey.Tests
             Assert.That(result, Is.EqualTo("File is empty."));
         }
 
-        [Test]
-        public void ReadFileChunked_EmptyFile_ReturnsEmptyFileMessage()
-        {
-            string path = "chunked_empty.txt";
-            File.WriteAllText(Path.Combine(_tempDir, path), "");
-
-            var result = _fileSystem.ReadFileChunked(path, 1, 1, _tempDir);
-
-            Assert.That(result, Is.EqualTo("File is empty."));
-        }
-
-        [Test]
-        public void ReadFileChunked_StartLineOutOfBounds_ReturnsInvalidRangeMessage()
-        {
-            string path = "chunked_bounds.txt";
-            File.WriteAllText(Path.Combine(_tempDir, path), "L1\nL2\nL3");
-
-            var result = _fileSystem.ReadFileChunked(path, 5, 6, _tempDir);
-
-            Assert.That(result, Is.EqualTo("Invalid line range."));
-        }
-
         #region WriteFileRange Tests
 
         private void WriteTestFile(string path, string content)

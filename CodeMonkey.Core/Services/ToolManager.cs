@@ -1,6 +1,7 @@
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CodeMonkey.Core.Services
 {
@@ -69,9 +70,7 @@ namespace CodeMonkey.Core.Services
             {
                 var unknownToolResult = $"Error: Tool {name} not found.";
                 _sessionLedger.RecordAction(name, false, $"Args: {argsJson} | Result: {unknownToolResult}");
-                return ToolResult.Error(name,
-                    unknownToolResult,
-                    GetToolDescription(name, argsJson));
+                return ToolResult.Error(name, unknownToolResult, GetToolDescription(name, argsJson));
             }
 
             string executionResult;
@@ -84,17 +83,20 @@ namespace CodeMonkey.Core.Services
                     "read_file" => ExecuteReadFile(argsJson, workingDirectory),
                     "read_file_chunked" => ExecuteReadFileChunked(argsJson, workingDirectory),
                     "read_file_search" => ExecuteReadFileSearch(argsJson, workingDirectory),
+                    "read_file_head" => ExecuteReadFileHead(argsJson, workingDirectory),
+                    "read_file_tail" => ExecuteReadFileTail(argsJson, workingDirectory),
+                    "grep" => ExecuteGrep(argsJson, workingDirectory),
+                    "file_exists" => ExecuteFileExists(argsJson, workingDirectory),
                     "write_file_range" => ExecuteWriteFileRange(argsJson, workingDirectory),
                     "get_file_list" => ExecuteGetFileList(argsJson, workingDirectory),
                     "run_command" => ExecuteRunCommand(argsJson, workingDirectory),
-                    _ => $"Error: Tool {name} not found."
+                    _ => throw new NotSupportedException($"Tool {name} is not supported.")
                 };
-                success = !executionResult.StartsWith("Error:");
+                success = true;
             }
-            catch (Exception Exception)
+            catch (Exception ex)
             {
-                executionResult = $"Error executing tool {name}: {Exception.Message}";
-                success = false;
+                return ToolResult.Error(name, ex, GetToolDescription(name, argsJson));
             }
 
             _sessionLedger.RecordAction(name, success, $"Args: {argsJson} | Result: {executionResult}");
@@ -112,9 +114,14 @@ namespace CodeMonkey.Core.Services
                 "write_file" => "Writes content to a file",
                 "read_file" => "Reads content from a file",
                 "read_file_chunked" => "Reads a range of lines from a file",
+                "read_file_head" => "Reads the first N lines of a file",
+                "read_file_tail" => "Reads the last N lines of a file",
+                "grep" => "Searches for a regex pattern in a file",
+                "file_exists" => "Checks if a file exists",
+                "write_file_range" => "Performs a surgical update to a file range",
                 "get_file_list" => "Lists files in a directory",
                 "run_command" => "Runs a shell command",
-                _ => "Unknown tool"
+                _ => "No description available"
             };
         }
 
@@ -135,6 +142,10 @@ namespace CodeMonkey.Core.Services
                 "read_file" => true,
                 "read_file_chunked" => true,
                 "read_file_search" => true,
+                "read_file_head" => true,
+                "read_file_tail" => true,
+                "grep" => true,
+                "file_exists" => true,
                 "write_file_range" => true,
                 "get_file_list" => true,
                 "run_command" => true,
@@ -170,6 +181,34 @@ namespace CodeMonkey.Core.Services
             return _fileSystem.ReadFileWithSearch(args.Path, args.SearchTerm, args.ContextLines, workingDirectory);
         }
 
+        private string ExecuteReadFileHead(string argsJson, string workingDirectory)
+        {
+            var args = ParseArguments<ReadFileHeadArgs>(argsJson);
+            if (args == null) throw new ArgumentException("Invalid arguments");
+            return _fileSystem.ReadFileHead(args.Path, args.LineCount, workingDirectory);
+        }
+
+        private string ExecuteReadFileTail(string argsJson, string workingDirectory)
+        {
+            var args = ParseArguments<ReadFileTailArgs>(argsJson);
+            if (args == null) throw new ArgumentException("Invalid arguments");
+            return _fileSystem.ReadFileTail(args.Path, args.LineCount, workingDirectory);
+        }
+
+        private string ExecuteGrep(string argsJson, string workingDirectory)
+        {
+            var args = ParseArguments<GrepArgs>(argsJson);
+            if (args == null) throw new ArgumentException("Invalid arguments");
+            return _fileSystem.Grep(args.Pattern, args.Path, workingDirectory);
+        }
+
+        private string ExecuteFileExists(string argsJson, string workingDirectory)
+        {
+            var args = ParseArguments<FileExistsArgs>(argsJson);
+            if (args == null) throw new ArgumentException("Invalid arguments");
+            return _fileSystem.FileExists(args.Path, workingDirectory) ? "True" : "False";
+        }
+
         private string ExecuteWriteFileRange(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<WriteFileRangeArgs>(argsJson);
@@ -188,7 +227,7 @@ namespace CodeMonkey.Core.Services
         private string ExecuteRunCommand(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<RunCommandArgs>(argsJson);
-            if (args == null) throw new ArgumentException("InvalidArguments");
+            if (args == null) throw new ArgumentException("Invalid arguments");
             return _shell.RunCommand(args.Command, workingDirectory);
         }
 

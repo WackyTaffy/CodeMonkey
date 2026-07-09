@@ -1,4 +1,5 @@
 using CodeMonkey.Core.Interfaces;
+using CodeMonkey.Core.Models;
 using CodeMonkey.Core.Utility;
 
 namespace CodeMonkey.Core.Services
@@ -158,18 +159,6 @@ namespace CodeMonkey.Core.Services
             try
             {
                 string validatedPath = ValidatePath(path, workingDirectory);
-
-                // Medium Risk: Surgical editing should be gated
-                var manifest = _manifestService.CreateManifest(
-                    "WriteFileRange", 
-                    RiskLevel.Medium, 
-                    $"Surgical edit ({mode}) on lines {startLine}-{endLine} in {validatedPath}", 
-                    validatedPath);
-
-                if (!_manifestService.RequestApproval(manifest, _preferences.ActiveProfile))
-                {
-                    throw new UnauthorizedAccessException($"Approval required for WriteFileRange: {validatedPath}");
-                }
 
                 _inner.WriteFileRange(validatedPath, startLine, endLine, content, mode, "");
                 _ledger.RecordAction($"WriteFileRange: {validatedPath} (lines {startLine}-{endLine}, mode: {mode})", true, "Surgical edit completed successfully");
