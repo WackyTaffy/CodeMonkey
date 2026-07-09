@@ -1,4 +1,6 @@
 using CodeMonkey.Core.Interfaces;
+using CodeMonkey.Core.Models;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace CodeMonkey.Core.Services

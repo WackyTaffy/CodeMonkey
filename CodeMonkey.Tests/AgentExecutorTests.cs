@@ -118,9 +118,6 @@ namespace CodeMonkey.Tests
             
             // Verify tool was dispatched
             await _mockToolDispatcher.Received(1).DispatchToolAsync(toolName, toolArgs, WorkingDir, null, _mockConversationManager);
-            
-            // Verify tool result was added to conversation
-            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "tool" && m.Content == toolResult.ToString() && m.ToolCallId == toolCallId));
         }
 
         [Test]

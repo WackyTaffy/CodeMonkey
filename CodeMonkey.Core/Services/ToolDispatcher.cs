@@ -10,7 +10,7 @@ namespace CodeMonkey.Core.Services
         private readonly ISubagentManager _subagentManager;
         private readonly ITokenHelper _tokenHelper;
 
-        private const int _TRUNCATION_LIMIT = 2000;
+        private const int _TRUNCATION_LIMIT = 4000;
 
         public ToolDispatcher(IToolManager toolManager, ISubagentManager subagentManager, ITokenHelper tokenHelper)
         {
