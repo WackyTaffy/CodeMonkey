@@ -31,8 +31,8 @@ namespace CodeMonkey.Tests
             // Assert
             Assert.That(response?.Choices, Is.Not.Null);
             Assert.That(response?.Choices, Has.Count.EqualTo(1));
-            Assert.That(response?.Choices[0].Message.ReasoningContent, Is.EqualTo("I am thinking about the greeting."));
-            Assert.That(response?.Choices[0].Message.Content, Is.EqualTo("Hello!"));
+            Assert.That(response?.Choices?[0].Message.ReasoningContent, Is.EqualTo("I am thinking about the greeting."));
+            Assert.That(response?.Choices?[0].Message.Content, Is.EqualTo("Hello!"));
         }
 
         [Test]
@@ -58,19 +58,14 @@ namespace CodeMonkey.Tests
 
             // Assert
             Assert.That(response?.Choices, Is.Not.Null);
-            Assert.That(response?.Choices[0].Message.ReasoningContent, Is.Null);
+            Assert.That(response?.Choices?[0].Message.ReasoningContent, Is.Null);
         }
 
         [Test]
         public void MessageToString_ShouldIncludeReasoningLength()
         {
             // Arrange
-            var message = new Message
-            {
-                Role = "assistant",
-                Content = "Hello",
-                ReasoningContent = "Thinking..."
-            };
+            var message = Message.AsAssistantMessage("Hello", "Thinking...");
 
             // Act
             var result = message.ToString();

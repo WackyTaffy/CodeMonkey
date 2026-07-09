@@ -34,7 +34,7 @@ namespace CodeMonkey.Core.Services
 
                 var subagentConvoMgr = new ConversationManager();
                 string subagentSysPrompt = _promptProvider.GetSubagentSystemPrompt(args.Name, args.Task, workingDirectory);
-                subagentConvoMgr.AddMessage(new Message("system", subagentSysPrompt));
+                subagentConvoMgr.AddMessage(Message.AsSystemPrompt(subagentSysPrompt));
 
                 var contextBuilder = new StringBuilder();
                 contextBuilder.AppendLine("--- INITIAL CONTEXT ---");
@@ -46,9 +46,9 @@ namespace CodeMonkey.Core.Services
                     contextBuilder.AppendLine($"\nFile: {filePath}\nContent:\n{content}\n---");
                 }
                 contextBuilder.AppendLine("\n--- END INITIAL CONTEXT ---");
-                subagentConvoMgr.AddMessage(new Message("context", contextBuilder.ToString()));
+                subagentConvoMgr.AddMessage(Message.AsContext(contextBuilder.ToString()));
 
-                subagentConvoMgr.AddMessage(new Message("user", args.Task));
+                subagentConvoMgr.AddMessage(Message.AsUserMessage(args.Task));
 
                 return await _agentExecutor.ExecuteLoopAsync(
                     "Subagent: " + args.Name, 

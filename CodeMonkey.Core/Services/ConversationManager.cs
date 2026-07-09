@@ -53,7 +53,7 @@ namespace CodeMonkey.Core.Services
             if (_messages.Count < 4) return "FAILED: Message count under threshhold for compaction";
 
             // 1. Preserve the essentials
-            var systemPromptMsg = _messages.FirstOrDefault(m => m.Role == "system") ?? new Message("system", systemPrompt);
+            var systemPromptMsg = _messages.FirstOrDefault(m => m.Role == "system") ?? Message.AsSystemPrompt(systemPrompt);
             
             // Preserve the last round (last two messages)
             var lastRound = _messages.Skip(_messages.Count - 2).ToList();
@@ -79,8 +79,8 @@ namespace CodeMonkey.Core.Services
 
             var compactionMessages = new List<Message>
             {
-                new Message("system", "You are a context compaction assistant. Your job is to summarize long conversations into a concise state summary for another AI."),
-                new Message("user", summaryPrompt.ToString())
+                Message.AsSystemPrompt("You are a context compaction assistant. Your job is to summarize long conversations into a concise state summary for another AI."),
+                Message.AsUserMessage(summaryPrompt.ToString())
             };
 
             var response = await llmClient.GetChatCompletionAsync(compactionMessages);
@@ -89,7 +89,7 @@ namespace CodeMonkey.Core.Services
             // 3. Reset and Re-build history
             _messages.Clear();
             _messages.Add(systemPromptMsg);
-            _messages.Add(new Message("system", $"Previous session summary: {summary}"));
+            _messages.Add(Message.AsSystemPrompt($"Previous session summary: {summary}"));
             _messages.AddRange(lastRound);
 
             return summary;

@@ -29,12 +29,12 @@ namespace CodeMonkey.Core.Services
         public void BootstrapContext(string workingDirectory)
         {
             string sysPrompt = _promptProvider.GetSystemPrompt(workingDirectory);
-            _conversationManager.AddMessage(new Message("system", sysPrompt));
+            _conversationManager.AddMessage(Message.AsSystemPrompt(sysPrompt));
 
             string readMeContents = _fileSystem.ReadFile("INDEX.md", workingDirectory);
             if (!readMeContents.Contains("File not found"))
             {
-                _conversationManager.AddMessage(new Message("context", readMeContents));
+                _conversationManager.AddMessage(Message.AsContext(readMeContents));
             }
         }
 
@@ -47,7 +47,7 @@ namespace CodeMonkey.Core.Services
 
         public async Task<ToolResult> ProcessUserRequestAsync(string userInput, string workingDirectory)
         {
-            _conversationManager.AddMessage(new Message("user", userInput));
+            _conversationManager.AddMessage(Message.AsUserMessage(userInput));
 
             return await _agentExecutor.ExecuteLoopAsync(
                 "Main Agent", 
