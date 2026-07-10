@@ -157,56 +157,64 @@ namespace CodeMonkey.Core.Services
         {
             var args = ParseArguments<WriteFileArgs>(argsJson);
             if (args == null) throw new ArgumentException("Invalid arguments");
-            return _fileSystem.WriteFile(args.Path, args.Content, workingDirectory);
+            var retval = _fileSystem.WriteFile(args.Path, args.Content, workingDirectory);
+            return retval;
         }
 
         private string ExecuteReadFile(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<ReadFileArgs>(argsJson);
             if (args == null) throw new ArgumentException("Invalid arguments");
-            return _fileSystem.ReadFile(args.Path, workingDirectory);
+            var retval = _fileSystem.ReadFile(args.Path, workingDirectory);
+            return retval;
         }
 
         private string ExecuteReadFileChunked(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<ReadFileChunkedArgs>(argsJson);
             if (args == null) throw new ArgumentException("Invalid arguments");
-            return _fileSystem.ReadFileRange(args.Path, args.StartLine, args.EndLine, workingDirectory);
+            var retval = _fileSystem.ReadFileRange(args.Path, args.StartLine, args.EndLine, workingDirectory);
+            return retval;
         }
 
         private string ExecuteReadFileSearch(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<ReadFileWithSearchArgs>(argsJson);
             if (args == null) throw new ArgumentException("Invalid arguments");
-            return _fileSystem.ReadFileWithSearch(args.Path, args.SearchTerm, args.ContextLines, workingDirectory);
+            var retval = _fileSystem.ReadFileWithSearch(args.Path, args.SearchTerm, args.ContextLines, workingDirectory);
+            return retval;
         }
 
         private string ExecuteReadFileHead(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<ReadFileHeadArgs>(argsJson);
             if (args == null) throw new ArgumentException("Invalid arguments");
-            return _fileSystem.ReadFileHead(args.Path, args.LineCount, workingDirectory);
+            var retval = _fileSystem.ReadFileHead(args.Path, args.LineCount, workingDirectory);
+            return retval;
         }
 
         private string ExecuteReadFileTail(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<ReadFileTailArgs>(argsJson);
             if (args == null) throw new ArgumentException("Invalid arguments");
-            return _fileSystem.ReadFileTail(args.Path, args.LineCount, workingDirectory);
+            var retval = _fileSystem.ReadFileTail(args.Path, args.LineCount, workingDirectory);
+            return retval;
         }
 
         private string ExecuteGrep(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<GrepArgs>(argsJson);
             if (args == null) throw new ArgumentException("Invalid arguments");
-            return _fileSystem.Grep(args.Pattern, args.Path, workingDirectory);
+            var retval = _fileSystem.Grep(args.Pattern, args.Path, workingDirectory);
+            return retval;
         }
 
         private string ExecuteFileExists(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<FileExistsArgs>(argsJson);
             if (args == null) throw new ArgumentException("Invalid arguments");
-            return _fileSystem.FileExists(args.Path, workingDirectory) ? "True" : "False";
+            var retval = _fileSystem.FileExists(args.Path, workingDirectory) ? "True" : "False";
+            return retval;
         }
 
         private string ExecuteWriteFileRange(string argsJson, string workingDirectory)
@@ -214,21 +222,24 @@ namespace CodeMonkey.Core.Services
             var args = ParseArguments<WriteFileRangeArgs>(argsJson);
             if (args == null) throw new ArgumentException("Invalid arguments");
             _fileSystem.WriteFileRange(args.Path, args.StartLine, args.EndLine, args.Content, args.Mode, workingDirectory);
-            return $"Successfully updated {args.Path} in range {args.StartLine}-{args.EndLine} using mode {args.Mode}.";
+            var retval = $"Successfully updated {args.Path} in range {args.StartLine}-{args.EndLine} using mode {args.Mode}.";
+            return retval;
         }
 
         private string ExecuteGetFileList(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<GetFileListArgs>(argsJson);
             if (args == null) throw new ArgumentException("Invalid arguments");
-            return _fileSystem.GetFileList(args.Recursive, args.SearchPattern, workingDirectory);
+            var retval = _fileSystem.GetFileList(args.Recursive, args.SearchPattern, workingDirectory);
+            return retval;
         }
 
         private string ExecuteRunCommand(string argsJson, string workingDirectory)
         {
             var args = ParseArguments<RunCommandArgs>(argsJson);
             if (args == null) throw new ArgumentException("Invalid arguments");
-            return _shell.RunCommand(args.Command, workingDirectory);
+            var retval = _shell.RunCommand(args.Command, workingDirectory);
+            return retval;
         }
 
         private bool IsPrivilegedTool(string name)

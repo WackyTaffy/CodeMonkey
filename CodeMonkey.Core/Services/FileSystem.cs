@@ -16,7 +16,14 @@ namespace CodeMonkey.Core.Services
             return File.Exists(fullPath) ? File.ReadAllText(fullPath) : FileNotFoundMessage;
         }
 
-        public string ReadFileRange(string path, int startLine, int endLine, string workingDirectory)
+        public string ReadFileRange(string path, int start, int end, string workingDirectory, bool useLineCount = true)
+        {
+            return useLineCount
+                ? ReadFileRangeByLine(path, start, end, workingDirectory)
+                : ReadFileRangeByCharacter(path, start, end, workingDirectory);
+        }
+
+        private string ReadFileRangeByLine(string path, int startLine, int endLine, string workingDirectory)
         {
             string fullPath = Path.IsPathRooted(path) ? path : Path.Combine(workingDirectory, path);
             if (!File.Exists(fullPath)) return FileNotFoundMessage;
@@ -40,7 +47,39 @@ namespace CodeMonkey.Core.Services
             }
         }
 
-        public string ReadFileHead(string path, int lineCount, string workingDirectory)
+        private string ReadFileRangeByCharacter(string path, int startCharCount, int endCharCount, string workingDirectory)
+        {
+            string fullPath = Path.IsPathRooted(path) ? path : Path.Combine(workingDirectory, path);
+            if (!File.Exists(fullPath)) return FileNotFoundMessage;
+
+            try
+            {
+                var fullFileStr = File.ReadAllText(fullPath);
+                int characterCount = fullFileStr.Length;
+                if (characterCount == 0) return "File is empty.";
+
+                int start = Math.Max(0, startCharCount - 1);
+                int end = Math.Min(characterCount - 1, endCharCount - 1);
+
+                if (start > end) return "Invalid line range.";
+
+                var chunk = fullFileStr.Skip(start).Take(end - start + 1);
+                return $"--- Characters {start + 1} to {end + 1} ---\n" + string.Join(Environment.NewLine, chunk);
+            }
+            catch (Exception ex)
+            {
+                return $"Error reading range: {ex.Message}";
+            }
+        }
+
+        public string ReadFileHead(string path, int count, string workingDirectory, bool useLineCount = true)
+        {
+            return useLineCount
+                ? ReadFileHeadByLine(path, count, workingDirectory)
+                : ReadFileHeadByCharacter(path, count, workingDirectory);
+        }
+
+        private string ReadFileHeadByLine(string path, int lineCount, string workingDirectory)
         {
             string fullPath = Path.IsPathRooted(path) ? path : Path.Combine(workingDirectory, path);
             if (!File.Exists(fullPath)) return FileNotFoundMessage;
@@ -57,7 +96,31 @@ namespace CodeMonkey.Core.Services
             }
         }
 
-        public string ReadFileTail(string path, int lineCount, string workingDirectory)
+        private string ReadFileHeadByCharacter(string path, int charCount, string workingDirectory)
+        {
+            string fullPath = Path.IsPathRooted(path) ? path : Path.Combine(workingDirectory, path);
+            if (!File.Exists(fullPath)) return FileNotFoundMessage;
+
+            try
+            {
+                var fullFileStr = File.ReadAllText(fullPath);
+                var head = fullFileStr.Take(charCount);
+                return $"--- First {charCount} characters ---\n" + string.Join(Environment.NewLine, head);
+            }
+            catch (Exception ex)
+            {
+                return $"Error reading head: {ex.Message}";
+            }
+        }
+
+        public string ReadFileTail(string path, int count, string workingDirectory, bool useLineCount = true)
+        {
+            return useLineCount
+                ? ReadFileTailByLine(path, count, workingDirectory)
+                : ReadFileTailByCharacter(path, count, workingDirectory);
+        }
+
+        private string ReadFileTailByLine(string path, int lineCount, string workingDirectory)
         {
             string fullPath = Path.IsPathRooted(path) ? path : Path.Combine(workingDirectory, path);
             if (!File.Exists(fullPath)) return FileNotFoundMessage;
@@ -67,6 +130,23 @@ namespace CodeMonkey.Core.Services
                 var lines = File.ReadAllLines(fullPath);
                 var tail = lines.Skip(Math.Max(0, lines.Length - lineCount));
                 return $"--- Last {lineCount} lines ---\n" + string.Join(Environment.NewLine, tail);
+            }
+            catch (Exception ex)
+            {
+                return $"Error reading tail: {ex.Message}";
+            }
+        }
+
+        private string ReadFileTailByCharacter(string path, int charCount, string workingDirectory)
+        {
+            string fullPath = Path.IsPathRooted(path) ? path : Path.Combine(workingDirectory, path);
+            if (!File.Exists(fullPath)) return FileNotFoundMessage;
+
+            try
+            {
+                var fullFileStr = File.ReadAllText(fullPath);
+                var tail = fullFileStr.Skip(Math.Max(0, fullFileStr.Length - charCount));
+                return $"--- Last {charCount} characters ---\n" + string.Join(Environment.NewLine, tail);
             }
             catch (Exception ex)
             {
@@ -184,7 +264,15 @@ namespace CodeMonkey.Core.Services
             return result.ToString().TrimEnd();
         }
 
-        public void WriteFileRange(string path, int startLine, int endLine, string content, FileWriteMode mode, string workingDirectory)
+        public void WriteFileRange(string path, int start, int end, string content, FileWriteMode mode, string workingDirectory, bool useLineCount = true)
+        {
+            if (useLineCount)
+                WriteFileRangeByLine(path, start, end, content, mode, workingDirectory);
+            else
+                WriteFileRangeByCharacter(path, start, end, content, mode, workingDirectory);
+        }
+
+        private void WriteFileRangeByLine(string path, int startLine, int endLine, string content, FileWriteMode mode, string workingDirectory)
         {
             if (startLine > endLine)
             {
@@ -239,5 +327,64 @@ namespace CodeMonkey.Core.Services
 
             File.WriteAllLines(fullPath, newLines);
         }
+
+        private void WriteFileRangeByCharacter(string path, int startChar, int endChar, string content, FileWriteMode mode, string workingDirectory)
+        {
+            if (startChar > endChar)
+            {
+                throw new ArgumentException("Start character index cannot be greater than end character index.");
+            }
+
+            string fullPath = Path.IsPathRooted(path) ? path : Path.Combine(workingDirectory, path);
+            if (!File.Exists(fullPath)) throw new FileNotFoundException($"File not found: {fullPath}");
+
+            var fullFileStr = File.ReadAllText(fullPath);
+            int totalCharCount = fullFileStr.Length;
+
+            int start = Math.Clamp(startChar, 1, totalCharCount + 1);
+            int end = totalCharCount == 0 ? 0 : Math.Clamp(endChar, 1, totalCharCount);
+
+            var newCharacters = new List<char>(fullFileStr);
+            var contentChars = new List<char>(content);
+
+            switch (mode)
+            {
+                case FileWriteMode.Replace:
+                    if (totalCharCount == 0 || end == 0 || start > end)
+                    {
+                        // Treat as insertion if file is empty, endLine is 0, or range is invalid (start > end)
+                        newCharacters.InsertRange(start - 1, contentChars);
+                    }
+                    else
+                    {
+                        newCharacters.RemoveRange(start - 1, end - start + 1);
+                        newCharacters.InsertRange(start - 1, contentChars);
+                    }
+                    break;
+
+                case FileWriteMode.InsertBefore:
+                    int insertBeforeIdx = Math.Clamp(start, 1, totalCharCount + 1) - 1;
+                    newCharacters.InsertRange(insertBeforeIdx, contentChars);
+                    break;
+
+                case FileWriteMode.InsertAfter:
+                    int insertAfterIdx = Math.Clamp(end, 0, totalCharCount);
+                    newCharacters.InsertRange(insertAfterIdx, contentChars);
+                    break;
+
+                case FileWriteMode.Delete:
+                    if (start <= end && totalCharCount > 0)
+                    {
+                        newCharacters.RemoveRange(start - 1, end - start + 1);
+                    }
+                    // Otherwise treat as no-op
+                    break;
+            }
+
+            File.WriteAllText(fullPath, new string(newCharacters.ToArray()));
+        }
+
+
+
     }
 }
