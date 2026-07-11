@@ -146,5 +146,23 @@ namespace CodeMonkey.Tests
             Assert.That(result.Result, Does.Contain("Successfully updated"));
             _mockFileSystem.Received(1).WriteFileRange("test.txt", 1, 5, "new content", Arg.Any<CodeMonkey.Core.Models.FileWriteMode>(), WorkingDir);
         }
+
+        [Test]
+        public void ExecuteTool_Grep_Success()
+        {
+            // Arrange
+            string name = "grep";
+            string argsJson = "{\"pattern\": \"foo\", \"path\": \"test.txt\"}";
+            _mockFileSystem.Grep("foo", "test.txt", WorkingDir).Returns("line 1: foo\nline 3: foo");
+
+            // Act
+            var result = _toolManager.ExecuteTool(name, argsJson, WorkingDir);
+
+            // Assert
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Result, Is.EqualTo("line 1: foo\nline 3: foo"));
+            _mockFileSystem.Received(1).Grep("foo", "test.txt", WorkingDir);
+            _mockSessionLedger.Received(1).RecordAction(Arg.Any<string>(), true, Arg.Any<string>());
+        }
     }
 }
