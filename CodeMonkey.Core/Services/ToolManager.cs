@@ -10,18 +10,16 @@ namespace CodeMonkey.Core.Services
         private readonly IFileSystem _fileSystem;
         private readonly IShell _shell;
         private readonly IUserPreferences _userPreferences;
-        private readonly ISessionLedger _sessionLedger;
         private readonly ITokenHelper _tokenHelper;
         private readonly JsonSerializerOptions _options;
 
         private const int _MAX_OUTPUT_LENGTH_TOKENS = 2500;
 
-        public ToolManager(IFileSystem fileSystem, IShell shell, IUserPreferences userPreferences, ISessionLedger sessionLedger, ITokenHelper tokenHelper)
+        public ToolManager(IFileSystem fileSystem, IShell shell, IUserPreferences userPreferences, ITokenHelper tokenHelper)
         {
             this._fileSystem = fileSystem;
             this._shell = shell;
             this._userPreferences = userPreferences;
-            this._sessionLedger = sessionLedger;
             this._tokenHelper = tokenHelper;
             this._options = new JsonSerializerOptions
             {
@@ -69,12 +67,10 @@ namespace CodeMonkey.Core.Services
             if (!IsToolSupported(name))
             {
                 var unknownToolResult = $"Error: Tool {name} not found.";
-                _sessionLedger.RecordAction(name, false, $"Args: {argsJson} | Result: {unknownToolResult}");
                 return ToolResult.Error(name, unknownToolResult, GetToolDescription(name, argsJson));
             }
 
             string executionResult;
-            bool success;
             try
             {
                 executionResult = name switch
@@ -92,14 +88,11 @@ namespace CodeMonkey.Core.Services
                     "run_command" => ExecuteRunCommand(argsJson, workingDirectory),
                     _ => throw new NotSupportedException($"Tool {name} is not supported.")
                 };
-                success = true;
             }
             catch (Exception ex)
             {
                 return ToolResult.Error(name, ex, GetToolDescription(name, argsJson));
             }
-
-            _sessionLedger.RecordAction(name, success, $"Args: {argsJson} | Result: {executionResult}");
 
             var safeLengthResult = RestrictLength(executionResult);
             return ToolResult.Success(name,

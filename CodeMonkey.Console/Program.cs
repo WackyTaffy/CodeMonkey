@@ -29,12 +29,11 @@ namespace CodeMonkey.Cli
 
             // Initialize security services
             var userPreferences = new UserPreferences();
-            var sessionLedger = new SessionLedger();
             
             var tokenHelper = new GemmaTokenHelper();
             var contextGuard = new ContextGuard(tokenHelper);
 
-            _toolManager = new ToolManager(_fileSystem, _shell, userPreferences, sessionLedger, tokenHelper);
+            _toolManager = new ToolManager(_fileSystem, _shell, userPreferences, tokenHelper);
             _conversationManager = new ConversationManager();
 
             // Modular Services DI

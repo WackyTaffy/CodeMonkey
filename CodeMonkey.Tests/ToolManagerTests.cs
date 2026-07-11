@@ -11,7 +11,6 @@ namespace CodeMonkey.Tests
         private IFileSystem _mockFileSystem;
         private IShell _mockShell;
         private IUserPreferences _mockUserPreferences;
-        private ISessionLedger _mockSessionLedger;
         private ITokenHelper _mockTokenHelper;
         private ToolManager _toolManager;
         private const string WorkingDir = @"C:\temp";
@@ -22,10 +21,9 @@ namespace CodeMonkey.Tests
             _mockFileSystem = Substitute.For<IFileSystem>();
             _mockShell = Substitute.For<IShell>();
             _mockUserPreferences = Substitute.For<IUserPreferences>();
-            _mockSessionLedger = Substitute.For<ISessionLedger>();
             _mockTokenHelper = Substitute.For<ITokenHelper>();
             
-            _toolManager = new ToolManager(_mockFileSystem, _mockShell, _mockUserPreferences, _mockSessionLedger, _mockTokenHelper);
+            _toolManager = new ToolManager(_mockFileSystem, _mockShell, _mockUserPreferences, _mockTokenHelper);
         }
 
         [Test]
@@ -43,7 +41,6 @@ namespace CodeMonkey.Tests
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Result, Is.EqualTo("File written successfully"));
             _mockFileSystem.Received(1).WriteFile("test.txt", "hello world", WorkingDir);
-            _mockSessionLedger.Received(1).RecordAction(Arg.Any<string>(), true, Arg.Any<string>());
         }
 
         [Test]
@@ -61,7 +58,6 @@ namespace CodeMonkey.Tests
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Result, Is.EqualTo("file content"));
             _mockFileSystem.Received(1).ReadFile("test.txt", WorkingDir);
-            _mockSessionLedger.Received(1).RecordAction(Arg.Any<string>(), true, Arg.Any<string>());
         }
 
         [Test]
@@ -79,7 +75,6 @@ namespace CodeMonkey.Tests
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Result, Is.EqualTo("directory listing"));
             _mockShell.Received(1).RunCommand("dir", WorkingDir);
-            _mockSessionLedger.Received(1).RecordAction(Arg.Any<string>(), true, Arg.Any<string>());
         }
 
         [Test]
@@ -95,7 +90,6 @@ namespace CodeMonkey.Tests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.Result, Is.EqualTo("Error: Tool invalid_tool not found."));
-            _mockSessionLedger.Received(1).RecordAction(Arg.Any<string>(), false, Arg.Any<string>());
         }
 
         [Test]
