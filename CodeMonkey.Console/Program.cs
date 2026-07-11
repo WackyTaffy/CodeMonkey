@@ -50,8 +50,8 @@ namespace CodeMonkey.Cli
                 Verbose = verbose
             };
 
-            WriteLog("--- AI Autonomous Engineer PoC ---");
-            if (verbose) WriteLog("[Mode] Verbose output enabled");
+            Console.WriteLine("--- AI Autonomous Engineer PoC ---");
+            if (verbose) Console.WriteLine("[Mode] Verbose output enabled");
             SetWorkingDir();
 
             _orchestrator.BootstrapContext(WorkingDirectory);
@@ -59,8 +59,8 @@ namespace CodeMonkey.Cli
             // Note: GetSystemPrompt moved to promptProvider, but we can still get it via promptProvider
             WriteLog($"\nSYSTEM PROMPT: {promptProvider.GetSystemPrompt(WorkingDirectory)}\n");
 
-            // Subscribe to orchestrator status updates
-            _orchestrator.OnStatusUpdate = (status) => 
+            // Subscribe to orchestrator and subagentManager status updates
+            Action<string> statusUpdateAction = (status) => 
             {
                 if (status.StartsWith("[REASONING]"))
                 {
@@ -71,6 +71,16 @@ namespace CodeMonkey.Cli
                     WriteLog($"[STATUS] {status}");
                 }
             };
+            _orchestrator.OnStatusUpdate = statusUpdateAction;
+            subagentManager.OnStatusUpdate = statusUpdateAction;
+
+            // Subscribe to orchestrator and subagentManager tool results
+            Action<ToolResult> toolResultAction = (result) =>
+            {
+                WriteLog($"[TOOL] {result.ToString().Substring(0, Math.Min(result.ToString().Length, 1000))}");
+            };
+            _orchestrator.OnToolExecuted = toolResultAction;
+            subagentManager.OnToolExecuted = toolResultAction;
 
             string? userInput = null;
             int loopCount = 0;
@@ -149,7 +159,7 @@ namespace CodeMonkey.Cli
         {
             var origColor = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine(str);
+            Console.WriteLine($"-- {_conversationManager.GetTotalTokenCount()} -- {str}");
             Console.ForegroundColor = origColor;
         }
 
@@ -157,7 +167,7 @@ namespace CodeMonkey.Cli
         {
             var origColor = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine($"[REASONING] {str}");
+            Console.WriteLine($"-- {_conversationManager.GetTotalTokenCount()} -- [REASONING] {str}");
             Console.ForegroundColor = origColor;
         }
 

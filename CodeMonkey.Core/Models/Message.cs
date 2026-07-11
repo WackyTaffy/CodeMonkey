@@ -52,7 +52,6 @@ namespace CodeMonkey.Core.Models
         public override string ToString() => $"[{Role}] {ToolCalls?.Count ?? 0} Tool Calls, Content Length = {Content?.Length ?? 0}, Reasoning Length = {ReasoningContent?.Length ?? 0}";
 
         public static Message AsSystemPrompt(string contentStr) => new Message("system") { Content = contentStr };
-        public static Message AsContext(string contentStr) => new Message("context") { Content = contentStr };
         public static Message AsUserMessage(string contentStr) => new Message("user") { Content = contentStr };
         public static Message AsAssistantMessage(string contentStr) => new Message("assistant") { Content = contentStr };
         public static Message AsAssistantMessage(string contentStr, string reasoningStr) => new Message("assistant") { Content = contentStr, ReasoningContent = reasoningStr };

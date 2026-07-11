@@ -92,7 +92,7 @@ namespace CodeMonkey.Core.Services
             }
             catch (Exception ex)
             {
-                return $"Error during grep: {ex.Message}";
+                return $"Error during monkey_grep: {ex.Message}";
             }
         }
 

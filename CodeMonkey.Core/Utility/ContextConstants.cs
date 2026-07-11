@@ -27,6 +27,6 @@ namespace CodeMonkey.Core.Utility
 
         public const string TruncationNotice = 
             "[SYSTEM NOTICE: This output was too large and has been truncated. " +
-            "To read the remainder, please use 'read_file_range' with specific line numbers or 'grep' to find specific patterns.]";
+            "To read the remainder, please use 'read_file_range' with specific line numbers or 'monkey_grep' to find specific patterns.]";
     }
 }

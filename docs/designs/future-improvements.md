@@ -48,3 +48,9 @@ The system prompt is dynamically built and populated based on an initial explora
 
 ## Color Coded Console Logs
 The console logs need to be color coded so I can differentiate the type of log, which agent is it being logged from, etc
+
+## Additional Tools
+
+| Name                    | Description                                                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| set_implementation_plan | Takes in a string that should contain an implementation plan for the current system goal. This plan is added to the context as a  |

@@ -11,6 +11,9 @@ namespace CodeMonkey.Core.Services
         private readonly IFileSystem _fileSystem;
         private readonly IToolManager _toolManager;
 
+        public Action<string>? OnStatusUpdate { get; set; }
+        public Action<ToolResult>? OnToolExecuted { get; set; }
+
         public SubagentManager(IPromptProvider promptProvider, IFileSystem fileSystem, IToolManager toolManager)
         {
             _promptProvider = promptProvider;
@@ -46,7 +49,7 @@ namespace CodeMonkey.Core.Services
                     contextBuilder.AppendLine($"\nFile: {filePath}\nContent:\n{content}\n---");
                 }
                 contextBuilder.AppendLine("\n--- END INITIAL CONTEXT ---");
-                subagentConvoMgr.AddMessage(Message.AsContext(contextBuilder.ToString()));
+                subagentConvoMgr.AddMessage(Message.AsSystemPrompt(contextBuilder.ToString()));
 
                 subagentConvoMgr.AddMessage(Message.AsUserMessage(args.Task));
 
@@ -54,9 +57,9 @@ namespace CodeMonkey.Core.Services
                     "Subagent: " + args.Name, 
                     subagentConvoMgr, 
                     workingDirectory, 
-                    args.Permissions, 
-                    (status) => { }, 
-                    (result) => { },
+                    args.Permissions,
+                    (status) => OnStatusUpdate?.Invoke(status),
+                    (toolResult) => OnToolExecuted?.Invoke(toolResult),
                     subagentSysPrompt);
             }
             catch (Exception ex)
