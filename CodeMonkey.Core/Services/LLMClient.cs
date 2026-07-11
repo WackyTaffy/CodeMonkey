@@ -113,6 +113,21 @@ namespace CodeMonkey.Core.Services
                 new {
                     type = "function",
                     function = new {
+                        name = "grep",
+                        description = "Searches for a regex pattern in a file",
+                        parameters = new {
+                            type = "object",
+                            properties = new {
+                                pattern = new { type = "string", description = "The regex pattern to search for" },
+                                path = new { type = "string", description = "The file path" }
+                            },
+                            required = new[] { "pattern", "path" }
+                        }
+                    }
+                },
+                new {
+                    type = "function",
+                    function = new {
                         name = "read_file_search",
                         description = "Searches for a term in a file and returns the matching lines with surrounding context. Line numbers are 1-indexed.",
                         parameters = new {

@@ -34,7 +34,7 @@ namespace CodeMonkey.Core.Services
             string readMeContents = _fileSystem.ReadFile("INDEX.md", workingDirectory);
             if (!readMeContents.Contains("File not found"))
             {
-                _conversationManager.AddMessage(Message.AsContext(readMeContents));
+                _conversationManager.AddMessage(Message.AsSystemPrompt(readMeContents));
             }
         }
 
