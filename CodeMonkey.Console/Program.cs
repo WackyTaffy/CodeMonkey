@@ -77,7 +77,7 @@ namespace CodeMonkey.Cli
             // Subscribe to orchestrator and subagentManager tool results
             Action<ToolResult> toolResultAction = (result) =>
             {
-                WriteLog($"[TOOL] {result.ToString().Substring(0, Math.Min(result.ToString().Length, 1000))}");
+                WriteLog($"[TOOL] {result.ToStringShort()}");
             };
             _orchestrator.OnToolExecuted = toolResultAction;
             subagentManager.OnToolExecuted = toolResultAction;
