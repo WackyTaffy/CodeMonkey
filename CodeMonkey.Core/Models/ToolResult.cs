@@ -26,4 +26,5 @@ public class ToolResult
     public static ToolResult Success(string toolName, string result, string description) => new(toolName, true, result, description);
 
     public override string ToString() => $"[{ToolName}] {(IsSuccess ? "SUCCESS" : "ERROR")} - {Result}";
+    public string ToStringShort() => $"[{ToolName}] {(IsSuccess ? "SUCCESS" : "ERROR")}, Result Length = {Result.Length} characters / {Result.Count(x => x.Equals(Environment.NewLine))} lines";
 }

@@ -29,12 +29,11 @@ namespace CodeMonkey.Cli
 
             // Initialize security services
             var userPreferences = new UserPreferences();
-            var sessionLedger = new SessionLedger();
             
             var tokenHelper = new GemmaTokenHelper();
             var contextGuard = new ContextGuard(tokenHelper);
 
-            _toolManager = new ToolManager(_fileSystem, _shell, userPreferences, sessionLedger, tokenHelper);
+            _toolManager = new ToolManager(_fileSystem, _shell, userPreferences, tokenHelper);
             _conversationManager = new ConversationManager();
 
             // Modular Services DI
@@ -78,7 +77,7 @@ namespace CodeMonkey.Cli
             // Subscribe to orchestrator and subagentManager tool results
             Action<ToolResult> toolResultAction = (result) =>
             {
-                WriteLog($"[TOOL] {result.ToString().Substring(0, Math.Min(result.ToString().Length, 1000))}");
+                WriteLog($"[TOOL] {result.ToStringShort()}");
             };
             _orchestrator.OnToolExecuted = toolResultAction;
             subagentManager.OnToolExecuted = toolResultAction;

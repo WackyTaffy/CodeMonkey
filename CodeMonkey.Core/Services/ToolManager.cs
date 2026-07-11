@@ -10,18 +10,16 @@ namespace CodeMonkey.Core.Services
         private readonly IFileSystem _fileSystem;
         private readonly IShell _shell;
         private readonly IUserPreferences _userPreferences;
-        private readonly ISessionLedger _sessionLedger;
         private readonly ITokenHelper _tokenHelper;
         private readonly JsonSerializerOptions _options;
 
         private const int _MAX_OUTPUT_LENGTH_TOKENS = 2500;
 
-        public ToolManager(IFileSystem fileSystem, IShell shell, IUserPreferences userPreferences, ISessionLedger sessionLedger, ITokenHelper tokenHelper)
+        public ToolManager(IFileSystem fileSystem, IShell shell, IUserPreferences userPreferences, ITokenHelper tokenHelper)
         {
             this._fileSystem = fileSystem;
             this._shell = shell;
             this._userPreferences = userPreferences;
-            this._sessionLedger = sessionLedger;
             this._tokenHelper = tokenHelper;
             this._options = new JsonSerializerOptions
             {
@@ -69,12 +67,10 @@ namespace CodeMonkey.Core.Services
             if (!IsToolSupported(name))
             {
                 var unknownToolResult = $"Error: Tool {name} not found.";
-                _sessionLedger.RecordAction(name, false, $"Args: {argsJson} | Result: {unknownToolResult}");
                 return ToolResult.Error(name, unknownToolResult, GetToolDescription(name, argsJson));
             }
 
             string executionResult;
-            bool success;
             try
             {
                 executionResult = name switch
@@ -85,21 +81,18 @@ namespace CodeMonkey.Core.Services
                     "read_file_search" => ExecuteReadFileSearch(argsJson, workingDirectory),
                     "read_file_head" => ExecuteReadFileHead(argsJson, workingDirectory),
                     "read_file_tail" => ExecuteReadFileTail(argsJson, workingDirectory),
-                    "grep" => ExecuteGrep(argsJson, workingDirectory),
+                    "monkey_grep" => ExecuteGrep(argsJson, workingDirectory),
                     "file_exists" => ExecuteFileExists(argsJson, workingDirectory),
                     "write_file_range" => ExecuteWriteFileRange(argsJson, workingDirectory),
                     "get_file_list" => ExecuteGetFileList(argsJson, workingDirectory),
                     "run_command" => ExecuteRunCommand(argsJson, workingDirectory),
                     _ => throw new NotSupportedException($"Tool {name} is not supported.")
                 };
-                success = true;
             }
             catch (Exception ex)
             {
                 return ToolResult.Error(name, ex, GetToolDescription(name, argsJson));
             }
-
-            _sessionLedger.RecordAction(name, success, $"Args: {argsJson} | Result: {executionResult}");
 
             var safeLengthResult = RestrictLength(executionResult);
             return ToolResult.Success(name,
@@ -116,7 +109,7 @@ namespace CodeMonkey.Core.Services
                 "read_file_chunked" => "Reads a range of lines from a file",
                 "read_file_head" => "Reads the first N lines of a file",
                 "read_file_tail" => "Reads the last N lines of a file",
-                "grep" => "Searches for a regex pattern in a file",
+                "monkey_grep" => "Searches for a regex pattern in a file",
                 "file_exists" => "Checks if a file exists",
                 "write_file_range" => "Performs a surgical update to a file range",
                 "get_file_list" => "Lists files in a directory",
@@ -144,7 +137,7 @@ namespace CodeMonkey.Core.Services
                 "read_file_search" => true,
                 "read_file_head" => true,
                 "read_file_tail" => true,
-                "grep" => true,
+                "monkey_grep" => true,
                 "file_exists" => true,
                 "write_file_range" => true,
                 "get_file_list" => true,

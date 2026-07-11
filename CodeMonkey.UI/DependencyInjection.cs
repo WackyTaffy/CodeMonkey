@@ -15,7 +15,6 @@ namespace CodeMonkey.UI
             
             // General Services
             services.AddSingleton<IUserPreferences, UserPreferences>();
-            services.AddSingleton<ISessionLedger, SessionLedger>();
             services.AddSingleton<IGitService, GitService>();
             services.AddSingleton<ILogManager, LogManager>();
 

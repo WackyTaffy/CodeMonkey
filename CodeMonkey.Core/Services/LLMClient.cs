@@ -113,8 +113,8 @@ namespace CodeMonkey.Core.Services
                 new {
                     type = "function",
                     function = new {
-                        name = "grep",
-                        description = "Searches for a regex pattern in a file",
+                        name = "monkey_grep",
+                        description = "Searches for a regex pattern in a file. Custome replacement for normal 'grep' commands",
                         parameters = new {
                             type = "object",
                             properties = new {
