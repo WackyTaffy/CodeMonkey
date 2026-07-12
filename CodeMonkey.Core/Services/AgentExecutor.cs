@@ -60,27 +60,33 @@ namespace CodeMonkey.Core.Services
 
                     conversationManager.AddMessage(aiMessage);
 
+                    if(aiMessage.ToolCalls.Count(x => x.Function.Name == "") > 1)
+                        return ToolResult.Error(agentLabel, $"Only one write command can be handled at once.");
+
                     foreach (var toolCall in aiMessage.ToolCalls)
                     {
                         if (conversationManager.ShouldCompact(TokenLimit))
                         {
                             onStatusUpdate($"[{agentLabel}] Context limit reached ({conversationManager.GetTotalTokenCount()}/{TokenLimit}). Compacting context...");
-                            await CompactContextAsync(conversationManager, workingDirectory, systemPrompt);
                         }
 
-                        onStatusUpdate($"[{agentLabel}] Calling tool: {toolCall.Function.Name} with args: {toolCall.Function.Arguments}");
-
                         ToolResult result = await _toolDispatcher.DispatchToolAsync(
-                            toolCall.Function.Name, 
-                            toolCall.Function.Arguments, 
-                            workingDirectory, 
-                            permissions, 
+                            toolCall.Function.Name,
+                            toolCall.Function.Arguments,
+                            workingDirectory,
+                            permissions,
                             conversationManager);
-                        
+
                         onToolExecuted(result);
 
                         var msg = Message.AsToolResult(toolCall.Id, result);
                         conversationManager.AddMessage(msg);
+
+                        if (result.RequiresContextRefresh)
+                        {
+                            onStatusUpdate($"[{agentLabel}] Structural change detected. Forcing context refresh...");
+                            break;
+                        }
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(aiMessage?.Content))
@@ -106,13 +112,13 @@ namespace CodeMonkey.Core.Services
             return await conversationManager.CompactAsync(_llmClient, systemPrompt);
         }
 
-        private async Task<ChatResponse?> GetResponseWithRetryAsync(List<Message> messages, string agentLabel, Action<string> onStatusUpdate, int maxRetries = 3)
+        private async Task<ChatResponse?> GetResponseWithRetryAsync(List<Message> messages, string agentLabel, Action<string> onStatusUpdate, int maxRetries = 3, bool isSubagent = false)
         {
             for (int i = 0; i < maxRetries; i++)
             {
                 try
                 {
-                    var response = await _llmClient.GetChatCompletionAsync(messages);
+                    var response = await _llmClient.GetChatCompletionAsync(messages, isSubagent);
                     if (response?.Choices != null && response.Choices.Count > 0)
                     {
                         return response;

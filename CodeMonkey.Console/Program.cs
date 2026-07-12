@@ -23,7 +23,6 @@ namespace CodeMonkey.Cli
             bool verbose = true;// args.Contains("--verbose");
 
             _client.Timeout = TimeSpan.FromMinutes(5);
-            _llmClient = new LLMClient(_client);
             _fileSystem = new Core.Services.FileSystem();
             _shell = new Shell();
 
@@ -35,6 +34,7 @@ namespace CodeMonkey.Cli
 
             _toolManager = new ToolManager(_fileSystem, _shell, userPreferences, tokenHelper);
             _conversationManager = new ConversationManager();
+            _llmClient = new LLMClient(_client, _toolManager);
 
             // Modular Services DI
             var promptProvider = new PromptProvider();

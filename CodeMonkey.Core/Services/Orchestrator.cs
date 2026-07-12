@@ -31,10 +31,16 @@ namespace CodeMonkey.Core.Services
             string sysPrompt = _promptProvider.GetSystemPrompt(workingDirectory);
             _conversationManager.AddMessage(Message.AsSystemPrompt(sysPrompt));
 
-            string readMeContents = _fileSystem.ReadFile("INDEX.md", workingDirectory);
-            if (!readMeContents.Contains("File not found"))
+            string indexContents = _fileSystem.ReadFile("INDEX.md", workingDirectory);
+            if (!indexContents.Contains("File not found"))
             {
-                _conversationManager.AddMessage(Message.AsSystemPrompt(readMeContents));
+                _conversationManager.AddMessage(Message.AsFileContents(indexContents));
+            }
+
+            string readmeContents = _fileSystem.ReadFile("README.md", workingDirectory);
+            if (!readmeContents.Contains("File not found"))
+            {
+                _conversationManager.AddMessage(Message.AsFileContents(readmeContents));
             }
         }
 
