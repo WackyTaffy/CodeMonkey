@@ -38,35 +38,37 @@ namespace CodeMonkey.Tests
         }
 
         [Test]
-        public void BootstrapContext_SetsSystemPromptAndAddsIndex()
+        public void BootstrapContext_SetsSystemPromptAndAddsInitialContextFiles()
         {
             // Arrange
             string expectedPrompt = "You are an expert .NET developer";
             _mockPromptProvider.GetSystemPrompt(WorkingDir).Returns(expectedPrompt);
             _mockFileSystem.ReadFile("INDEX.md", WorkingDir).Returns("Index content");
+            _mockFileSystem.ReadFile("README.md", WorkingDir).Returns("ReadMe content");
 
             // Act
             _orchestrator.BootstrapContext(WorkingDir);
 
             // Assert
-            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "system" && m.Content == expectedPrompt));
-            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "context" && m.Content == "Index content"));
+            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "system" && m.Content != null && m.Content == expectedPrompt));
+            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "user" && m.Content != null && m.Content.Contains("Index content")));
+            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "user" && m.Content != null && m.Content.Contains("ReadMe content")));
         }
 
         [Test]
-        public void BootstrapContext_IndexNotFound_DoesNotAddIndex()
+        public void BootstrapContext_IndexNotFound_DoesNotAddInitialContextFiles()
         {
             // Arrange
             _mockPromptProvider.GetSystemPrompt(WorkingDir).Returns("System Prompt");
+            _mockFileSystem.ReadFile("README.md", WorkingDir).Returns("File not found");
             _mockFileSystem.ReadFile("INDEX.md", WorkingDir).Returns("File not found");
 
             // Act
             _orchestrator.BootstrapContext(WorkingDir);
 
             // Assert
-            _mockConversationManager.Received().AddMessage(Arg.Is<Message>(m => m.Role == "system"));
-            _mockConversationManager.DidNotReceive().AddMessage(Arg.Is<Message>(m => m.Role == "context"));
-            
+            _mockConversationManager.Received(1).AddMessage(Arg.Is<Message>(m => m.Role == "system"));
+            _mockConversationManager.DidNotReceive().AddMessage(Arg.Is<Message>(m => m.Role == "user"));
         }
 
         [Test]
