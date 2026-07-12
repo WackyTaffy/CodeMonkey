@@ -95,9 +95,11 @@ namespace CodeMonkey.Core.Services
             }
 
             var safeLengthResult = RestrictLength(executionResult);
+            bool requiresRefresh = name == "write_file" || name == "write_file_range";
             return ToolResult.Success(name,
                 safeLengthResult,
-                GetToolDescription(name, argsJson));
+                GetToolDescription(name, argsJson),
+                requiresRefresh);
         }
 
         private string GetToolDescription(string name, string argsJson)
@@ -109,6 +111,7 @@ namespace CodeMonkey.Core.Services
                 "read_file_chunked" => "Reads a range of lines from a file",
                 "read_file_head" => "Reads the first N lines of a file",
                 "read_file_tail" => "Reads the last N lines of a file",
+                "read_file_search" => "Searches for a term in a file",
                 "monkey_grep" => "Searches for a regex pattern in a file",
                 "file_exists" => "Checks if a file exists",
                 "write_file_range" => "Performs a surgical update to a file range",

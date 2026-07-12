@@ -65,22 +65,25 @@ namespace CodeMonkey.Core.Services
                         if (conversationManager.ShouldCompact(TokenLimit))
                         {
                             onStatusUpdate($"[{agentLabel}] Context limit reached ({conversationManager.GetTotalTokenCount()}/{TokenLimit}). Compacting context...");
-                            await CompactContextAsync(conversationManager, workingDirectory, systemPrompt);
                         }
 
-                        onStatusUpdate($"[{agentLabel}] Calling tool: {toolCall.Function.Name} with args: {toolCall.Function.Arguments}");
-
                         ToolResult result = await _toolDispatcher.DispatchToolAsync(
-                            toolCall.Function.Name, 
-                            toolCall.Function.Arguments, 
-                            workingDirectory, 
-                            permissions, 
+                            toolCall.Function.Name,
+                            toolCall.Function.Arguments,
+                            workingDirectory,
+                            permissions,
                             conversationManager);
-                        
+
                         onToolExecuted(result);
 
                         var msg = Message.AsToolResult(toolCall.Id, result);
                         conversationManager.AddMessage(msg);
+
+                        if (result.RequiresContextRefresh)
+                        {
+                            onStatusUpdate($"[{agentLabel}] Structural change detected. Forcing context refresh...");
+                            break;
+                        }
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(aiMessage?.Content))
