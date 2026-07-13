@@ -9,7 +9,6 @@ namespace CodeMonkey.Core.Interfaces
             string agentLabel, 
             IConversationManager conversationManager, 
             string workingDirectory, 
-            List<string>? permissions, 
             Action<string> onStatusUpdate, 
             Action<ToolResult> onToolExecuted, 
             string systemPrompt);

@@ -75,12 +75,8 @@ namespace CodeMonkey.Cli
             subagentManager.OnStatusUpdate = statusUpdateAction;
 
             // Subscribe to orchestrator and subagentManager tool results
-            Action<ToolResult> toolResultAction = (result) =>
-            {
-                WriteLog($"[TOOL] {result.ToStringShort()}");
-            };
-            _orchestrator.OnToolExecuted = toolResultAction;
-            subagentManager.OnToolExecuted = toolResultAction;
+            _orchestrator.OnToolExecuted = WriteLog;
+            subagentManager.OnToolExecuted = WriteLog;
 
             string? userInput = null;
             int loopCount = 0;
@@ -176,6 +172,19 @@ namespace CodeMonkey.Cli
             var origColor = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine(str);
+            Console.ForegroundColor = origColor;
+        }
+
+        private static void WriteLog(ToolResult result)
+        {
+            var origColor = Console.ForegroundColor;
+
+            if(result.IsSuccess)
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+            else
+                Console.ForegroundColor = ConsoleColor.Red;
+
+            Console.WriteLine($"-- {_conversationManager.GetTotalTokenCount()} -- [TOOL] {result.ToStringShort()}");
             Console.ForegroundColor = origColor;
         }
     }

@@ -49,7 +49,6 @@ namespace CodeMonkey.Tests
                 "TestAgent", 
                 _mockConversationManager, 
                 WorkingDir, 
-                null, 
                 _ => { }, 
                 _ => { }, 
                 SystemPrompt);
@@ -98,7 +97,7 @@ namespace CodeMonkey.Tests
             _mockLlmClient.GetChatCompletionAsync(Arg.Any<List<Message>>())
                 .Returns(Task.FromResult(firstResponse), Task.FromResult(secondResponse));
 
-            _mockToolDispatcher.DispatchToolAsync(toolName, toolArgs, WorkingDir, null, _mockConversationManager)
+            _mockToolDispatcher.DispatchToolAsync(toolName, toolArgs, WorkingDir, _mockConversationManager)
                 .Returns(Task.FromResult(toolResult));
 
             _mockConversationManager.GetMessages().Returns(new List<Message>());
@@ -107,8 +106,7 @@ namespace CodeMonkey.Tests
             var result = await _agentExecutor.ExecuteLoopAsync(
                 "TestAgent", 
                 _mockConversationManager, 
-                WorkingDir, 
-                null, 
+                WorkingDir,
                 _ => { }, 
                 _ => { }, 
                 SystemPrompt);
@@ -117,7 +115,7 @@ namespace CodeMonkey.Tests
             Assert.That(result.Result, Is.EqualTo(finalAnswer));
             
             // Verify tool was dispatched
-            await _mockToolDispatcher.Received(1).DispatchToolAsync(toolName, toolArgs, WorkingDir, null, _mockConversationManager);
+            await _mockToolDispatcher.Received(1).DispatchToolAsync(toolName, toolArgs, WorkingDir, _mockConversationManager);
         }
 
         [Test]
@@ -157,7 +155,7 @@ namespace CodeMonkey.Tests
             _mockLlmClient.GetChatCompletionAsync(Arg.Any<List<Message>>())
                 .Returns(Task.FromResult(firstResponse), Task.FromResult(secondResponse));
 
-            _mockToolDispatcher.DispatchToolAsync(toolName, toolArgs, WorkingDir, null, _mockConversationManager)
+            _mockToolDispatcher.DispatchToolAsync(toolName, toolArgs, WorkingDir, _mockConversationManager)
                 .Returns(Task.FromResult(toolResult));
 
             _mockConversationManager.GetMessages().Returns(new List<Message>());
@@ -171,7 +169,6 @@ namespace CodeMonkey.Tests
                 "TestAgent", 
                 _mockConversationManager, 
                 WorkingDir, 
-                null, 
                 _ => { }, 
                 _ => { }, 
                 SystemPrompt);
@@ -207,7 +204,6 @@ namespace CodeMonkey.Tests
                 "TestAgent", 
                 _mockConversationManager, 
                 WorkingDir, 
-                null, 
                 _ => { }, 
                 _ => { }, 
                 SystemPrompt);
@@ -231,7 +227,6 @@ namespace CodeMonkey.Tests
                 "TestAgent", 
                 _mockConversationManager, 
                 WorkingDir, 
-                null, 
                 _ => { }, 
                 _ => { }, 
                 SystemPrompt);
@@ -253,7 +248,6 @@ namespace CodeMonkey.Tests
                 "TestAgent", 
                 _mockConversationManager, 
                 WorkingDir, 
-                null, 
                 _ => { }, 
                 _ => { }, 
                 SystemPrompt);

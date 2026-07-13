@@ -35,7 +35,7 @@ You must evaluate the ""blast radius"" and context size before executing tasks. 
 
         public string GetSubagentSystemPrompt(string name, string task, string workingDirectory)
         {
-            return $@"You are a specialized worker agent named '{name}'. Your sole purpose is to execute the following task: {task}.
+            return $@"You are a subagent: a specialized worker named '{name}'. Your sole purpose is to execute the following task: {task}.
 You are working in '{workingDirectory}'.
 
 ### BEHAVIORAL CONSTRAINTS

@@ -22,19 +22,14 @@ namespace CodeMonkey.Core.Services
             string agentLabel, 
             IConversationManager conversationManager, 
             string workingDirectory, 
-            List<string>? permissions, 
             Action<string> onStatusUpdate, 
             Action<ToolResult> onToolExecuted, 
             string systemPrompt)
         {
-            int iterations = 0;
             const int TokenLimit = 12500;
 
             while (true)
             {
-                iterations++;
-                onStatusUpdate($"[{agentLabel}] Iteration {iterations}: Thinking...");
-
                 List<Message> currentMessages = conversationManager.GetMessages().ToList();
 
                 var response = await GetResponseWithRetryAsync(currentMessages, agentLabel, onStatusUpdate);
@@ -74,7 +69,6 @@ namespace CodeMonkey.Core.Services
                             toolCall.Function.Name,
                             toolCall.Function.Arguments,
                             workingDirectory,
-                            permissions,
                             conversationManager);
 
                         onToolExecuted(result);

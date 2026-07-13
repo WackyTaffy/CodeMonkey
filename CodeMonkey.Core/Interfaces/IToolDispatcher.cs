@@ -7,8 +7,7 @@ namespace CodeMonkey.Core.Interfaces
         Task<ToolResult> DispatchToolAsync(
             string toolName, 
             string arguments, 
-            string workingDirectory, 
-            List<string>? permissions,
+            string workingDirectory,
             IConversationManager conversationManager);
     }
 }

@@ -58,8 +58,7 @@ namespace CodeMonkey.Core.Services
             return await _agentExecutor.ExecuteLoopAsync(
                 "Main Agent", 
                 _conversationManager, 
-                workingDirectory, 
-                null, 
+                workingDirectory,
                 (status) => OnStatusUpdate?.Invoke(status), 
                 (toolResult) => OnToolExecuted?.Invoke(toolResult), 
                 _promptProvider.GetSystemPrompt(workingDirectory));

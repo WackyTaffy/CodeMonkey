@@ -22,8 +22,7 @@ namespace CodeMonkey.Core.Services
         public async Task<ToolResult> DispatchToolAsync(
             string toolName, 
             string arguments, 
-            string workingDirectory, 
-            List<string>? permissions,
+            string workingDirectory,
             IConversationManager conversationManager)
         {
             if (toolName == "dispatch_subagent")
@@ -31,7 +30,7 @@ namespace CodeMonkey.Core.Services
                 return await _subagentManager.HandleSubagentDispatchAsync(arguments, workingDirectory);
             }
 
-            ToolResult toolResult = _toolManager.ExecuteTool(toolName, arguments, workingDirectory, permissions);
+            ToolResult toolResult = _toolManager.ExecuteTool(toolName, arguments, workingDirectory);
 
             if (_tokenHelper.GetTokenCount(toolResult.Result) > _TRUNCATION_LIMIT)
                 toolResult.Result = $"The tool result was too large (over {_TRUNCATION_LIMIT} tokens) and was truncated. " +

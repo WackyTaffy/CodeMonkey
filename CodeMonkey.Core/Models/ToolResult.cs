@@ -30,5 +30,12 @@ public class ToolResult
     public static ToolResult Success(string toolName, string result, string description, bool requiresContextRefresh) => new(toolName, true, result, description, requiresContextRefresh);
 
     public override string ToString() => $"[{ToolName}] {(IsSuccess ? "SUCCESS" : "ERROR")} - {Result}";
-    public string ToStringShort() => $"[{ToolName}] {(IsSuccess ? "SUCCESS" : "ERROR")}, Result Length = {Result.Length} characters / {Result.Count(x => x.Equals(Environment.NewLine))} lines";
+    public string ToStringShort()
+    {
+        string resultStr = IsSuccess
+            ? $"Result Length = {Result.Length} characters / {Result.Count(x => x.Equals(Environment.NewLine))} lines"
+            : $"Result = {Result}";
+
+        return $"[{ToolName}] {(IsSuccess ? "SUCCESS" : "ERROR")}, {resultStr}";
+    }
 }

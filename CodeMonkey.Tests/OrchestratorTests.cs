@@ -101,9 +101,8 @@ namespace CodeMonkey.Tests
             _mockPromptProvider.GetSystemPrompt(WorkingDir).Returns(systemPrompt);
             _mockAgentExecutor.ExecuteLoopAsync(
                 "Main Agent", 
-                _mockConversationManager, 
-                WorkingDir, 
-                null, 
+                _mockConversationManager,
+                WorkingDir,
                 Arg.Any<Action<string>>(), 
                 Arg.Any<Action<ToolResult>>(), 
                 systemPrompt)
@@ -119,7 +118,6 @@ namespace CodeMonkey.Tests
                 "Main Agent", 
                 _mockConversationManager, 
                 WorkingDir, 
-                null, 
                 Arg.Any<Action<string>>(), 
                 Arg.Any<Action<ToolResult>>(), 
                 systemPrompt);

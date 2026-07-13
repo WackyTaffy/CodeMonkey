@@ -1,9 +1,7 @@
 using CodeMonkey.Core.Interfaces;
 using CodeMonkey.Core.Models;
-using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Xml.Linq;
 
 namespace CodeMonkey.Core.Services
 {
@@ -11,7 +9,6 @@ namespace CodeMonkey.Core.Services
     {
         private readonly IFileSystem _fileSystem;
         private readonly IShell _shell;
-        private readonly IUserPreferences _userPreferences;
         private readonly ITokenHelper _tokenHelper;
         private readonly JsonSerializerOptions _options;
 
@@ -21,7 +18,6 @@ namespace CodeMonkey.Core.Services
         {
             this._fileSystem = fileSystem;
             this._shell = shell;
-            this._userPreferences = userPreferences;
             this._tokenHelper = tokenHelper;
             this._options = new JsonSerializerOptions
             {
@@ -54,18 +50,8 @@ namespace CodeMonkey.Core.Services
             }
         }
 
-        public ToolResult ExecuteTool(string name, string argsJson, string workingDirectory, List<string>? permissions = null)
+        public ToolResult ExecuteTool(string name, string argsJson, string workingDirectory)
         {
-            if (permissions != null && permissions.Any())
-            {
-                if (IsPrivilegedTool(name) && !permissions.Contains(name))
-                {
-                    return ToolResult.Error(name, 
-                        $"Error: Subagent does not have permission to use tool '{name}'.", 
-                        GetToolDescription(name));
-                }
-            }
-
             if (!IsToolSupported(name))
             {
                 var unknownToolResult = $"Error: Tool {name} not found.";
@@ -100,7 +86,7 @@ namespace CodeMonkey.Core.Services
             bool requiresRefresh = name == "write_file" || name == "write_file_range";
             return ToolResult.Success(name,
                 safeLengthResult,
-                GetToolDescription(name, argsJson),
+                GetToolDescription(name),
                 requiresRefresh);
         }
 
@@ -230,12 +216,6 @@ namespace CodeMonkey.Core.Services
             if (args == null) throw new ArgumentException("Invalid arguments");
             return _shell.RunCommand(args.Command, workingDirectory);
         }
-
-        private bool IsPrivilegedTool(string name)
-        {
-            return IsToolSupported(name);
-        }
-
 
         public List<object> GetToolDefinitions(bool isSubagent = false)
         {
@@ -418,7 +398,8 @@ namespace CodeMonkey.Core.Services
                     function = new
                     {
                         name = "dispatch_subagent",
-                        description = "Use subagents for repetitive exploration, summarizing large volumes of data, or tasks that would generate excessive tool output.",
+                        description = "Use subagents for repetitive exploration, summarizing large volumes of data, or tasks that would generate excessive tool output. " +
+                            "You can dispatch as many subagents as you want at once, they will execute sequentially so it will not impact performance.",
                         parameters = new
                         {
                             type = "object",

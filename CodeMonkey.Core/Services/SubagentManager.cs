@@ -26,24 +26,24 @@ namespace CodeMonkey.Core.Services
             _agentExecutor = executor;
         }
 
-        public async Task<ToolResult> HandleSubagentDispatchAsync(string argsYaml, string workingDirectory)
+        public async Task<ToolResult> HandleSubagentDispatchAsync(string args, string workingDirectory)
         {
             if (_agentExecutor == null) return ToolResult.Error("dispatch_subagent", "SubagentManager not initialized with executor");
 
             try
             {
-                var args = _toolManager.ParseArguments<SubagentDispatchArgs>(argsYaml);
-                if (args == null) return ToolResult.Error("dispatch_subagent", "Invalid arguments for subagent dispatch");
+                var argsParsed = _toolManager.ParseArguments<SubagentDispatchArgs>(args);
+                if (argsParsed == null) return ToolResult.Error("dispatch_subagent", "Invalid arguments for subagent dispatch");
 
                 var subagentConvoMgr = new ConversationManager();
-                string subagentSysPrompt = _promptProvider.GetSubagentSystemPrompt(args.Name, args.Task, workingDirectory);
+                string subagentSysPrompt = _promptProvider.GetSubagentSystemPrompt(argsParsed.Name, argsParsed.Task, workingDirectory);
                 subagentConvoMgr.AddMessage(Message.AsSystemPrompt(subagentSysPrompt));
 
                 var contextBuilder = new StringBuilder();
                 contextBuilder.AppendLine("--- INITIAL CONTEXT ---");
-                contextBuilder.AppendLine($"Task: {args.Task}");
+                contextBuilder.AppendLine($"Task: {argsParsed.Task}");
                 contextBuilder.AppendLine("\nRelevant Files:");
-                foreach (var filePath in args.InitialContext)
+                foreach (var filePath in argsParsed.InitialContext)
                 {
                     string content = _fileSystem.ReadFile(filePath, workingDirectory);
                     contextBuilder.AppendLine($"\nFile: {filePath}\nContent:\n{content}\n---");
@@ -51,13 +51,12 @@ namespace CodeMonkey.Core.Services
                 contextBuilder.AppendLine("\n--- END INITIAL CONTEXT ---");
                 subagentConvoMgr.AddMessage(Message.AsSystemPrompt(contextBuilder.ToString()));
 
-                subagentConvoMgr.AddMessage(Message.AsUserMessage(args.Task));
+                subagentConvoMgr.AddMessage(Message.AsUserMessage(argsParsed.Task));
 
                 return await _agentExecutor.ExecuteLoopAsync(
-                    "Subagent: " + args.Name, 
+                    "Subagent: " + argsParsed.Name, 
                     subagentConvoMgr, 
-                    workingDirectory, 
-                    args.Permissions,
+                    workingDirectory,
                     (status) => OnStatusUpdate?.Invoke(status),
                     (toolResult) => OnToolExecuted?.Invoke(toolResult),
                     subagentSysPrompt);
