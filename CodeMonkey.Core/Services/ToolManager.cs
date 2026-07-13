@@ -97,11 +97,11 @@ namespace CodeMonkey.Core.Services
             }
 
             var safeLengthResult = RestrictLength(executionResult);
-
+            bool requiresRefresh = name == "write_file" || name == "write_file_range";
             return ToolResult.Success(name,
                 safeLengthResult,
-                GetToolDescription(name),
-                RequiredRefresh(name));
+                GetToolDescription(name, argsJson),
+                requiresRefresh);
         }
 
         public static bool RequiredRefresh(string toolName) => toolName == "write_file" || toolName == "write_file_range";
