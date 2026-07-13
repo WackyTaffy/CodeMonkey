@@ -60,6 +60,9 @@ namespace CodeMonkey.Core.Services
 
                     conversationManager.AddMessage(aiMessage);
 
+                    if(aiMessage.ToolCalls.Count(x => x.Function.Name == "") > 1)
+                        return ToolResult.Error(agentLabel, $"Only one write command can be handled at once.");
+
                     foreach (var toolCall in aiMessage.ToolCalls)
                     {
                         if (conversationManager.ShouldCompact(TokenLimit))
@@ -109,13 +112,13 @@ namespace CodeMonkey.Core.Services
             return await conversationManager.CompactAsync(_llmClient, systemPrompt);
         }
 
-        private async Task<ChatResponse?> GetResponseWithRetryAsync(List<Message> messages, string agentLabel, Action<string> onStatusUpdate, int maxRetries = 3)
+        private async Task<ChatResponse?> GetResponseWithRetryAsync(List<Message> messages, string agentLabel, Action<string> onStatusUpdate, int maxRetries = 3, bool isSubagent = false)
         {
             for (int i = 0; i < maxRetries; i++)
             {
                 try
                 {
-                    var response = await _llmClient.GetChatCompletionAsync(messages);
+                    var response = await _llmClient.GetChatCompletionAsync(messages, isSubagent);
                     if (response?.Choices != null && response.Choices.Count > 0)
                     {
                         return response;
