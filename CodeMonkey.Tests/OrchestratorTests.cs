@@ -103,7 +103,7 @@ namespace CodeMonkey.Tests
                 "Main Agent", 
                 _mockConversationManager,
                 WorkingDir,
-                Arg.Any<Action<string>>(), 
+                Arg.Any<Action<AgentStatus>>(), 
                 Arg.Any<Action<ToolResult>>(), 
                 systemPrompt)
                 .Returns(Task.FromResult(ToolResult.Success("Main Agent", expectedResponse)));
@@ -118,7 +118,7 @@ namespace CodeMonkey.Tests
                 "Main Agent", 
                 _mockConversationManager, 
                 WorkingDir, 
-                Arg.Any<Action<string>>(), 
+                Arg.Any<Action<AgentStatus>>(), 
                 Arg.Any<Action<ToolResult>>(), 
                 systemPrompt);
         }

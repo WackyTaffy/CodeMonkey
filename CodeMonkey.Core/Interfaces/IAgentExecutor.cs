@@ -9,8 +9,9 @@ namespace CodeMonkey.Core.Interfaces
             string agentLabel, 
             IConversationManager conversationManager, 
             string workingDirectory, 
-            Action<string> onStatusUpdate, 
+            Action<AgentStatus> onStatusUpdate, 
             Action<ToolResult> onToolExecuted, 
-            string systemPrompt);
+            string systemPrompt,
+            bool isSubagent = false);
     }
 }
