@@ -103,9 +103,9 @@ namespace CodeMonkey.UI.ViewModels
             }
         }
 
-        private void HandleStatusUpdate(string status)
+        private void HandleStatusUpdate(AgentStatus status)
         {
-            _logManager.Log(status);
+            _logManager.Log(status.ToString());
         }
 
         protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)

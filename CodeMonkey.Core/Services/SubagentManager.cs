@@ -11,7 +11,7 @@ namespace CodeMonkey.Core.Services
         private readonly IFileSystem _fileSystem;
         private readonly IToolManager _toolManager;
 
-        public Action<string>? OnStatusUpdate { get; set; }
+        public Action<AgentStatus>? OnStatusUpdate { get; set; }
         public Action<ToolResult>? OnToolExecuted { get; set; }
 
         public SubagentManager(IPromptProvider promptProvider, IFileSystem fileSystem, IToolManager toolManager)
@@ -59,7 +59,8 @@ namespace CodeMonkey.Core.Services
                     workingDirectory,
                     (status) => OnStatusUpdate?.Invoke(status),
                     (toolResult) => OnToolExecuted?.Invoke(toolResult),
-                    subagentSysPrompt);
+                    subagentSysPrompt,
+                    isSubagent: true);
             }
             catch (Exception ex)
             {

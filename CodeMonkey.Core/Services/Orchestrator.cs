@@ -10,7 +10,7 @@ namespace CodeMonkey.Core.Services
         private readonly IFileSystem _fileSystem;
         private readonly IConversationManager _conversationManager;
 
-        public Action<string>? OnStatusUpdate { get; set; }
+        public Action<AgentStatus>? OnStatusUpdate { get; set; }
         public Action<ToolResult>? OnToolExecuted { get; set; }
         public bool Verbose { get; set; }
 

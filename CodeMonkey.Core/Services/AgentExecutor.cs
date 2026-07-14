@@ -22,9 +22,10 @@ namespace CodeMonkey.Core.Services
             string agentLabel, 
             IConversationManager conversationManager, 
             string workingDirectory, 
-            Action<string> onStatusUpdate, 
+            Action<AgentStatus> onStatusUpdate, 
             Action<ToolResult> onToolExecuted, 
-            string systemPrompt)
+            string systemPrompt,
+            bool isSubagent = false)
         {
             const int TokenLimit = 12500;
 
@@ -32,7 +33,7 @@ namespace CodeMonkey.Core.Services
             {
                 List<Message> currentMessages = conversationManager.GetMessages().ToList();
 
-                var response = await GetResponseWithRetryAsync(currentMessages, agentLabel, onStatusUpdate);
+                var response = await GetResponseWithRetryAsync(conversationManager, currentMessages, agentLabel, onStatusUpdate, isSubagent: isSubagent);
 
                 if (response == null || response.Choices == null || response.Choices.Count == 0)
                 {
@@ -43,14 +44,14 @@ namespace CodeMonkey.Core.Services
 
                 if (!string.IsNullOrWhiteSpace(aiMessage?.ReasoningContent))
                 {
-                    onStatusUpdate($"[{agentLabel}] REASONING: {aiMessage.ReasoningContent}");
+                    UpdateStatus(conversationManager, onStatusUpdate, $"[{agentLabel}] REASONING: {aiMessage.ReasoningContent}", isSubagent);
                 }
 
                 if (aiMessage?.ToolCalls != null && aiMessage.ToolCalls.Count > 0)
                 {
                     if (!string.IsNullOrWhiteSpace(aiMessage.Content))
                     {
-                        onStatusUpdate($"[{agentLabel}] THINKING: {aiMessage.Content}");
+                        UpdateStatus(conversationManager, onStatusUpdate, $"[{agentLabel}] THINKING: {aiMessage.Content}", isSubagent);
                     }
 
                     conversationManager.AddMessage(aiMessage);
@@ -62,7 +63,7 @@ namespace CodeMonkey.Core.Services
                     {
                         if (conversationManager.ShouldCompact(TokenLimit))
                         {
-                            onStatusUpdate($"[{agentLabel}] Context limit reached ({conversationManager.GetTotalTokenCount()}/{TokenLimit}). Compacting context...");
+                            UpdateStatus(conversationManager, onStatusUpdate, $"[{agentLabel}] Context limit reached ({conversationManager.GetTotalTokenCount()}/{TokenLimit}). Compacting context...", isSubagent);
                         }
 
                         ToolResult result = await _toolDispatcher.DispatchToolAsync(
@@ -78,7 +79,7 @@ namespace CodeMonkey.Core.Services
 
                         if (result.RequiresContextRefresh)
                         {
-                            onStatusUpdate($"[{agentLabel}] Structural change detected. Forcing context refresh...");
+                            UpdateStatus(conversationManager, onStatusUpdate, $"[{agentLabel}] Structural change detected. Forcing context refresh...", isSubagent);
                             break;
                         }
                     }
@@ -95,7 +96,7 @@ namespace CodeMonkey.Core.Services
 
                 if (conversationManager.ShouldCompact(TokenLimit))
                 {
-                    onStatusUpdate($"[{agentLabel}] Context limit reached ({conversationManager.GetTotalTokenCount()}/{TokenLimit}). Compacting context...");
+                    UpdateStatus(conversationManager, onStatusUpdate, $"[{agentLabel}] Context limit reached ({conversationManager.GetTotalTokenCount()}/{TokenLimit}). Compacting context...", isSubagent);
                     await CompactContextAsync(conversationManager, workingDirectory, systemPrompt);
                 }
             }
@@ -106,7 +107,7 @@ namespace CodeMonkey.Core.Services
             return await conversationManager.CompactAsync(_llmClient, systemPrompt);
         }
 
-        private async Task<ChatResponse?> GetResponseWithRetryAsync(List<Message> messages, string agentLabel, Action<string> onStatusUpdate, int maxRetries = 3, bool isSubagent = false)
+        private async Task<ChatResponse?> GetResponseWithRetryAsync(IConversationManager conversationManager, List<Message> messages, string agentLabel, Action<AgentStatus> onStatusUpdate, int maxRetries = 3, bool isSubagent = false)
         {
             for (int i = 0; i < maxRetries; i++)
             {
@@ -117,11 +118,11 @@ namespace CodeMonkey.Core.Services
                     {
                         return response;
                     }
-                    onStatusUpdate($"[{agentLabel}] [VERBOSE] AI response was empty or null. Retry {i + 1}/{maxRetries}...");
+                    UpdateStatus(conversationManager, onStatusUpdate, $"[{agentLabel}] [VERBOSE] AI response was empty or null. Retry {i + 1}/{maxRetries}...", isSubagent);
                 }
                 catch (Exception ex)
                 {
-                    onStatusUpdate($"[{agentLabel}] [VERBOSE] LLM call failed: {ex.Message}. Retry {i + 1}/{maxRetries}...");
+                    UpdateStatus(conversationManager, onStatusUpdate, $"[{agentLabel}] [VERBOSE] LLM call failed: {ex.Message}. Retry {i + 1}/{maxRetries}...", isSubagent);
                 }
 
                 if (i < maxRetries - 1)
@@ -130,6 +131,12 @@ namespace CodeMonkey.Core.Services
                 }
             }
             return null;
+        }
+
+        private void UpdateStatus(IConversationManager conversationManager, Action<AgentStatus> onStatusUpdate, string status, bool isSubagent)
+        {
+            int contextSize = conversationManager.GetTotalTokenCount();
+            onStatusUpdate(new AgentStatus(status, contextSize, isSubagent));
         }
     }
 }

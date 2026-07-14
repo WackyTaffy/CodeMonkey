@@ -60,16 +60,9 @@ namespace CodeMonkey.Cli
             WriteLog($"\nSYSTEM PROMPT: {promptProvider.GetSystemPrompt(WorkingDirectory)}\n");
 
             // Subscribe to orchestrator and subagentManager status updates
-            Action<string> statusUpdateAction = (status) => 
+            Action<AgentStatus> statusUpdateAction = (status) => 
             {
-                if (status.StartsWith("[REASONING]"))
-                {
-                    WriteReasoning(status.Replace("[REASONING]", ""));
-                }
-                else
-                {
-                    WriteLog($"[STATUS] {status}");
-                }
+                WriteLog(status.ToString());
             };
             _orchestrator.OnStatusUpdate = statusUpdateAction;
             subagentManager.OnStatusUpdate = statusUpdateAction;
@@ -154,16 +147,13 @@ namespace CodeMonkey.Cli
         private static void WriteLog(string str)
         {
             var origColor = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine($"-- {_conversationManager.GetTotalTokenCount()} -- {str}");
-            Console.ForegroundColor = origColor;
-        }
 
-        private static void WriteReasoning(string str)
-        {
-            var origColor = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine($"-- {_conversationManager.GetTotalTokenCount()} -- [REASONING] {str}");
+            if(str.Contains("] REASONING:"))
+                Console.ForegroundColor = ConsoleColor.DarkCyan;
+            else
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+
+            Console.WriteLine(str);
             Console.ForegroundColor = origColor;
         }
 
@@ -184,7 +174,7 @@ namespace CodeMonkey.Cli
             else
                 Console.ForegroundColor = ConsoleColor.Red;
 
-            Console.WriteLine($"-- {_conversationManager.GetTotalTokenCount()} -- [TOOL] {result.ToStringShort()}");
+            Console.WriteLine($"[TOOL] {result.ToStringShort()}");
             Console.ForegroundColor = origColor;
         }
     }
